@@ -415,7 +415,7 @@ function removeProgressSyncUser(apiClient, seriesId, userId) {
 
 function syncProgressToUser(apiClient, item, currentUser) {
     return Promise.all([
-        apiClient.getUsers({ IsDisabled: false, IsHidden: false }),
+        apiClient.getUsers({ IsDisabled: false }),
         getProgressSyncSeries(apiClient, item.Id)
     ]).then(([users, sync]) => {
         const syncedUserIds = sync.UserIds || [];
