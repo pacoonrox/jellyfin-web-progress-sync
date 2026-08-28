@@ -306,6 +306,14 @@ export async function getCommands(options) {
         });
     }
 
+    if (item.Type === BaseItemKind.Series && user.Policy.IsAdministrator) {
+        commands.push({
+            name: 'Sync progress to user',
+            id: 'syncprogresstouser',
+            icon: 'sync'
+        });
+    }
+
     if (item.PlaylistItemId && options.playlistId && options.canEditPlaylist) {
         commands.push({
             name: globalize.translate('RemoveFromPlaylist'),
@@ -383,6 +391,67 @@ function getResolveFunction(resolve, commandId, changed, deleted, itemId) {
             itemId: itemId
         });
     };
+}
+
+function getProgressSyncSeries(apiClient, seriesId) {
+    return apiClient.getJSON(apiClient.getUrl(`ProgressSync/Series/${seriesId}`));
+}
+
+function addProgressSyncUser(apiClient, seriesId, userId) {
+    return apiClient.ajax({
+        type: 'POST',
+        url: apiClient.getUrl(`ProgressSync/Series/${seriesId}/Users/${userId}`),
+        dataType: 'json'
+    });
+}
+
+function removeProgressSyncUser(apiClient, seriesId, userId) {
+    return apiClient.ajax({
+        type: 'DELETE',
+        url: apiClient.getUrl(`ProgressSync/Series/${seriesId}/Users/${userId}`),
+        dataType: 'json'
+    });
+}
+
+function syncProgressToUser(apiClient, item, currentUser) {
+    return Promise.all([
+        apiClient.getUsers({ IsDisabled: false, IsHidden: false }),
+        getProgressSyncSeries(apiClient, item.Id)
+    ]).then(([users, sync]) => {
+        const syncedUserIds = sync.UserIds || [];
+        const menuItems = users
+            .filter(user => user.Id !== currentUser.Id)
+            .map(user => {
+                const isSynced = syncedUserIds.includes(user.Id);
+                return {
+                    name: user.Name || user.ServerName || user.Id,
+                    id: user.Id,
+                    icon: isSynced ? 'check' : 'person',
+                    secondaryText: isSynced ? 'Synced' : ''
+                };
+            });
+
+        if (!menuItems.length) {
+            toast('No other users are available');
+            return Promise.resolve();
+        }
+
+        return actionsheet.show({
+            title: `Sync progress for ${item.Name}`,
+            items: menuItems,
+            positionTo: document.activeElement
+        }).then(userId => {
+            if (syncedUserIds.includes(userId)) {
+                return removeProgressSyncUser(apiClient, item.Id, userId).then(() => {
+                    toast('Progress sync removed');
+                });
+            }
+
+            return addProgressSyncUser(apiClient, item.Id, userId).then(() => {
+                toast('Progress sync enabled');
+            });
+        });
+    });
 }
 
 function executeCommand(item, id, options) {
@@ -539,6 +608,9 @@ function executeCommand(item, id, options) {
             case 'refresh':
                 refresh(apiClient, item);
                 getResolveFunction(resolve, id)();
+                break;
+            case 'syncprogresstouser':
+                syncProgressToUser(apiClient, item, options.user).then(getResolveFunction(resolve, id, true), getResolveFunction(resolve, id));
                 break;
             case 'open':
                 appRouter.showItem(item);
