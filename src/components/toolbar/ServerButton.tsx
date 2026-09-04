@@ -1,4 +1,4 @@
-import icon from '@jellyfin/ux-web/icon-transparent.png';
+import icon from 'assets/img/branding/pacojones-face.png';
 import Button from '@mui/material/Button/Button';
 import React, { FC } from 'react';
 import { Link } from 'react-router-dom';
