@@ -25,6 +25,7 @@ import Dashboard, { pageClassOn } from '../utils/dashboard';
 import Events from '../utils/events.ts';
 import { getParameterByName } from '../utils/url.ts';
 import { getRequestHref } from '../utils/requestUrl.ts';
+import { getSeerrSsoRedirectUrl } from '../utils/seerrSso.ts';
 import datetime from '../scripts/datetime';
 
 import '../elements/emby-button/paper-icon-button-light';
@@ -433,34 +434,6 @@ function openRequestOverlay(url) {
     document.body.classList.add('bodyWithPopupOpen');
 
     return frame;
-}
-
-async function getSeerrSsoRedirectUrl(requestUrl) {
-    const apiClient = getCurrentApiClient();
-    const jellyfinToken = apiClient?.accessToken?.();
-
-    if (!jellyfinToken) {
-        return requestUrl;
-    }
-
-    const ssoUrl = new URL('/api/v1/auth/jellyfin-sso/start', requestUrl);
-    const response = await fetch(ssoUrl.href, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            jellyfinToken,
-            returnTo: '/'
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error('Jellyfin SSO failed');
-    }
-
-    const result = await response.json();
-    return new URL(result.redirectUrl, requestUrl).href;
 }
 
 async function onRequestLinkClick(e) {

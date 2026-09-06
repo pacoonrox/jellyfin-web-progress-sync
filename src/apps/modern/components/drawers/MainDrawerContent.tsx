@@ -10,7 +10,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ListSubheader from '@mui/material/ListSubheader';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import ListItemLink from 'components/ListItemLink';
@@ -20,6 +20,7 @@ import { useApi } from 'hooks/useApi';
 import { useWebConfig } from 'hooks/useWebConfig';
 import globalize from 'lib/globalize';
 import { getRequestHref } from 'utils/requestUrl';
+import { openSeerrRequest } from 'utils/seerrSso';
 
 import LibraryIcon from '../LibraryIcon';
 import DrawerHeaderLink from './DrawerHeaderLink';
@@ -32,6 +33,10 @@ const MainDrawerContent = () => {
     const webConfig = useWebConfig();
 
     const isHomeSelected = location.pathname === '/home' && (!location.search || location.search === '?tab=0');
+    const onRequestLinkClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        void openSeerrRequest();
+    }, []);
 
     return (
         <>
@@ -119,6 +124,7 @@ const MainDrawerContent = () => {
                                             href={getRequestHref()}
                                             target='_blank'
                                             rel='noopener noreferrer'
+                                            onClick={onRequestLinkClick}
                                         >
                                             <ListItemIcon>
                                                 <AddCircle />

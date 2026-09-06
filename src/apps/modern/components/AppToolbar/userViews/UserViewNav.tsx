@@ -21,6 +21,7 @@ import useCurrentTab from 'hooks/useCurrentTab';
 import { useWebConfig } from 'hooks/useWebConfig';
 import globalize from 'lib/globalize';
 import { getRequestHref } from 'utils/requestUrl';
+import { openSeerrRequest } from 'utils/seerrSso';
 
 import UserViewsMenu from './UserViewsMenu';
 
@@ -124,6 +125,11 @@ const UserViewNav = () => {
         setOverflowAnchorEl(null);
     }, []);
 
+    const onRequestNavItemClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        void openSeerrRequest(REQUEST_NAV_ITEM.url);
+    }, []);
+
     const currentUserView = useMemo(() => (
         getCurrentUserView(userViews?.Items, location.pathname, libraryId || ancestorLibraryId, collectionType, activeTab)
     ), [ activeTab, collectionType, libraryId, ancestorLibraryId, location.pathname, userViews ]);
@@ -154,6 +160,7 @@ const UserViewNav = () => {
                             href={navItem.url}
                             target='_blank'
                             rel='noopener noreferrer'
+                            onClick={navItem.url === REQUEST_NAV_ITEM.url ? onRequestNavItemClick : undefined}
                         >
                             {navItem.name}
                         </Button>
