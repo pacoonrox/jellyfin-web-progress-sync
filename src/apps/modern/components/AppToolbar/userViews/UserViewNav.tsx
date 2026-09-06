@@ -20,6 +20,7 @@ import { useApi } from 'hooks/useApi';
 import useCurrentTab from 'hooks/useCurrentTab';
 import { useWebConfig } from 'hooks/useWebConfig';
 import globalize from 'lib/globalize';
+import { getRequestHref } from 'utils/requestUrl';
 
 import UserViewsMenu from './UserViewsMenu';
 
@@ -31,6 +32,12 @@ const OVERFLOW_MENU_ID = 'user-view-overflow-menu';
 
 const HOME_PATH = '/home';
 const LIST_PATH = '/list';
+
+const REQUEST_NAV_ITEM = {
+    name: 'Request',
+    icon: 'add_circle',
+    url: getRequestHref()
+};
 
 const getCurrentUserView = (
     userViews: BaseItemDto[] | undefined,
@@ -79,7 +86,9 @@ const UserViewNav = () => {
 
     const navItems = useMemo(() => [
         ...(menuLinks || []),
-        ...(userViews?.Items || [])
+        ...((userViews?.Items || []).flatMap(item => (
+            item.CollectionType === CollectionType.Tvshows ? [item, REQUEST_NAV_ITEM] : [item]
+        )))
     ], [ menuLinks, userViews ]);
 
     const {

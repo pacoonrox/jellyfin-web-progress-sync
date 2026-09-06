@@ -24,6 +24,7 @@ import { getMenuLinks } from '../scripts/settings/webSettings';
 import Dashboard, { pageClassOn } from '../utils/dashboard';
 import Events from '../utils/events.ts';
 import { getParameterByName } from '../utils/url.ts';
+import { getRequestHref } from '../utils/requestUrl.ts';
 import datetime from '../scripts/datetime';
 
 import '../elements/emby-button/paper-icon-button-light';
@@ -288,20 +289,6 @@ function getItemHref(item, context) {
     });
 }
 
-function getRequestHref() {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    const port = window.location.port ? `:${window.location.port}` : '';
-    const labels = hostname.split('.');
-    const isIpAddress = /^[\d.]+$/.test(hostname) || hostname.indexOf(':') !== -1;
-
-    if (hostname === 'localhost' || isIpAddress || labels.length < 2) {
-        return `${protocol}//${hostname}${port}`;
-    }
-
-    return `${protocol}//request.${labels.slice(-2).join('.')}`;
-}
-
 function toggleMainDrawer() {
     if (navDrawerInstance.isVisible) {
         closeMainDrawer();
@@ -493,7 +480,7 @@ function updateLibraryMenu(user) {
                                   </a>`;
 
                 if (i.CollectionType === 'tvshows') {
-                    itemHtml += `<a is="emby-linkbutton" data-itemid="request" class="lnkMediaFolder navMenuOption" href="${getRequestHref()}">
+                    itemHtml += `<a is="emby-linkbutton" data-itemid="request" class="lnkMediaFolder navMenuOption" href="${getRequestHref()}" target="_blank" rel="noopener noreferrer">
                                     <span class="material-icons navMenuOptionIcon add_circle" aria-hidden="true"></span>
                                     <span class="sectionName navMenuOptionText">Request</span>
                                   </a>`;

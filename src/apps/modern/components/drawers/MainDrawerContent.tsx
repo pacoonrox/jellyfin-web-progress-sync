@@ -1,5 +1,7 @@
 import Favorite from '@mui/icons-material/Favorite';
 import Home from '@mui/icons-material/Home';
+import AddCircle from '@mui/icons-material/AddCircle';
+import { CollectionType } from '@jellyfin/sdk/lib/generated-client/models/collection-type';
 import Divider from '@mui/material/Divider';
 import Icon from '@mui/material/Icon';
 import List from '@mui/material/List';
@@ -17,6 +19,7 @@ import { useUserViews } from 'hooks/api/useUserViews';
 import { useApi } from 'hooks/useApi';
 import { useWebConfig } from 'hooks/useWebConfig';
 import globalize from 'lib/globalize';
+import { getRequestHref } from 'utils/requestUrl';
 
 import LibraryIcon from '../LibraryIcon';
 import DrawerHeaderLink from './DrawerHeaderLink';
@@ -94,18 +97,40 @@ const MainDrawerContent = () => {
                             </ListSubheader>
                         }
                     >
-                        {userViews.map(view => (
-                            <ListItem key={view.Id} disablePadding>
-                                <ListItemLink
-                                    to={appRouter.getRouteUrl(view, { context: view.CollectionType }).substring(1)}
-                                >
-                                    <ListItemIcon>
-                                        <LibraryIcon item={view} />
-                                    </ListItemIcon>
-                                    <ListItemText primary={view.Name} />
-                                </ListItemLink>
-                            </ListItem>
-                        ))}
+                        {userViews.flatMap(view => {
+                            const items = [
+                                <ListItem key={view.Id} disablePadding>
+                                    <ListItemLink
+                                        to={appRouter.getRouteUrl(view, { context: view.CollectionType }).substring(1)}
+                                    >
+                                        <ListItemIcon>
+                                            <LibraryIcon item={view} />
+                                        </ListItemIcon>
+                                        <ListItemText primary={view.Name} />
+                                    </ListItemLink>
+                                </ListItem>
+                            ];
+
+                            if (view.CollectionType === CollectionType.Tvshows) {
+                                items.push(
+                                    <ListItem key={`${view.Id}_request`} disablePadding>
+                                        <ListItemButton
+                                            component='a'
+                                            href={getRequestHref()}
+                                            target='_blank'
+                                            rel='noopener noreferrer'
+                                        >
+                                            <ListItemIcon>
+                                                <AddCircle />
+                                            </ListItemIcon>
+                                            <ListItemText primary='Request' />
+                                        </ListItemButton>
+                                    </ListItem>
+                                );
+                            }
+
+                            return items;
+                        })}
                     </List>
                 </>
             )}
