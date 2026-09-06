@@ -390,6 +390,120 @@ function onSidebarLinkClick() {
     LibraryMenu.setTitle(text);
 }
 
+function closeRequestOverlay() {
+    const overlay = document.querySelector('.requestOverlay');
+
+    if (overlay) {
+        overlay.remove();
+    }
+
+    document.body.classList.remove('bodyWithPopupOpen');
+}
+
+function openRequestOverlay(url) {
+    closeRequestOverlay();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'requestOverlay';
+
+    const header = document.createElement('div');
+    header.className = 'requestOverlayHeader';
+
+    const closeButton = document.createElement('button', { is: 'paper-icon-button-light' });
+    closeButton.className = 'requestOverlayClose';
+    closeButton.type = 'button';
+    closeButton.title = globalize.translate('ButtonBack');
+    closeButton.innerHTML = '<span class="material-icons close" aria-hidden="true"></span>';
+    closeButton.addEventListener('click', closeRequestOverlay);
+
+    const title = document.createElement('span');
+    title.className = 'requestOverlayTitle';
+    title.textContent = 'Request';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'requestOverlayFrame';
+    frame.title = 'Request media';
+    frame.src = url || 'about:blank';
+
+    header.appendChild(closeButton);
+    header.appendChild(title);
+    overlay.appendChild(header);
+    overlay.appendChild(frame);
+    document.body.appendChild(overlay);
+    document.body.classList.add('bodyWithPopupOpen');
+
+    return frame;
+}
+
+async function getSeerrSsoRedirectUrl(requestUrl) {
+    const apiClient = getCurrentApiClient();
+    const jellyfinToken = apiClient?.accessToken?.();
+
+    if (!jellyfinToken) {
+        return requestUrl;
+    }
+
+    const ssoUrl = new URL('/api/v1/auth/jellyfin-sso/start', requestUrl);
+    const response = await fetch(ssoUrl.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            jellyfinToken,
+            returnTo: '/'
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('Jellyfin SSO failed');
+    }
+
+    const result = await response.json();
+    return new URL(result.redirectUrl, requestUrl).href;
+}
+
+async function onRequestLinkClick(e) {
+    const requestUrl = this.href;
+    let requestWindow;
+    let requestFrame;
+
+    e.preventDefault();
+
+    if (layoutManager.mobile) {
+        requestFrame = openRequestOverlay();
+        closeMainDrawer();
+    } else {
+        requestWindow = window.open('about:blank', '_blank');
+
+        if (requestWindow) {
+            requestWindow.opener = null;
+        }
+    }
+
+    try {
+        const redirectUrl = await getSeerrSsoRedirectUrl(requestUrl);
+
+        if (requestFrame) {
+            requestFrame.src = redirectUrl;
+        } else if (requestWindow) {
+            requestWindow.location.href = redirectUrl;
+        } else {
+            window.location.href = redirectUrl;
+        }
+    } catch (err) {
+        console.warn('Unable to use Jellyfin SSO for request link', err);
+
+        if (requestFrame) {
+            requestFrame.src = requestUrl;
+        } else if (requestWindow) {
+            requestWindow.location.href = requestUrl;
+        } else {
+            window.location.href = requestUrl;
+        }
+    }
+}
+
 function getUserViews(apiClient, userId) {
     const api = ServerConnections.getApi(apiClient.serverId());
 
@@ -480,7 +594,7 @@ function updateLibraryMenu(user) {
                                   </a>`;
 
                 if (i.CollectionType === 'tvshows') {
-                    itemHtml += `<a is="emby-linkbutton" data-itemid="request" class="lnkMediaFolder navMenuOption" href="${getRequestHref()}" target="_blank" rel="noopener noreferrer">
+                    itemHtml += `<a is="emby-linkbutton" data-itemid="request" class="lnkMediaFolder navMenuOption requestMenuOption" href="${getRequestHref()}" target="_blank" rel="noopener noreferrer">
                                     <span class="material-icons navMenuOptionIcon add_circle" aria-hidden="true"></span>
                                     <span class="sectionName navMenuOptionText">Request</span>
                                   </a>`;
@@ -495,6 +609,12 @@ function updateLibraryMenu(user) {
             for (const sidebarLink of sidebarLinks) {
                 sidebarLink.removeEventListener('click', onSidebarLinkClick);
                 sidebarLink.addEventListener('click', onSidebarLinkClick);
+            }
+
+            const requestLinks = elem.querySelectorAll('.requestMenuOption');
+            for (const requestLink of requestLinks) {
+                requestLink.removeEventListener('click', onRequestLinkClick);
+                requestLink.addEventListener('click', onRequestLinkClick);
             }
         });
     }
