@@ -288,6 +288,20 @@ function getItemHref(item, context) {
     });
 }
 
+function getRequestHref() {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const port = window.location.port ? `:${window.location.port}` : '';
+    const labels = hostname.split('.');
+    const isIpAddress = /^[\d.]+$/.test(hostname) || hostname.indexOf(':') !== -1;
+
+    if (hostname === 'localhost' || isIpAddress || labels.length < 2) {
+        return `${protocol}//${hostname}${port}`;
+    }
+
+    return `${protocol}//request.${labels.slice(-2).join('.')}`;
+}
+
 function toggleMainDrawer() {
     if (navDrawerInstance.isVisible) {
         closeMainDrawer();
@@ -473,10 +487,19 @@ function updateLibraryMenu(user) {
                 const icon = i.icon || imageHelper.getLibraryIcon(i.CollectionType);
                 const itemId = i.Id;
 
-                return `<a is="emby-linkbutton" data-itemid="${itemId}" class="lnkMediaFolder navMenuOption" href="${getItemHref(i, i.CollectionType)}">
+                let itemHtml = `<a is="emby-linkbutton" data-itemid="${itemId}" class="lnkMediaFolder navMenuOption" href="${getItemHref(i, i.CollectionType)}">
                                     <span class="material-icons navMenuOptionIcon ${icon}" aria-hidden="true"></span>
                                     <span class="sectionName navMenuOptionText">${escapeHtml(i.Name)}</span>
                                   </a>`;
+
+                if (i.CollectionType === 'tvshows') {
+                    itemHtml += `<a is="emby-linkbutton" data-itemid="request" class="lnkMediaFolder navMenuOption" href="${getRequestHref()}">
+                                    <span class="material-icons navMenuOptionIcon add_circle" aria-hidden="true"></span>
+                                    <span class="sectionName navMenuOptionText">Request</span>
+                                  </a>`;
+                }
+
+                return itemHtml;
             }).join('');
             libraryMenuOptions.innerHTML = html;
             const elem = libraryMenuOptions;
