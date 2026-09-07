@@ -3,6 +3,10 @@ import layoutManager from 'components/layoutManager';
 
 import { getRequestHref } from './requestUrl';
 
+interface SeerrSsoRedirectOptions {
+    embedded?: boolean;
+}
+
 function closeRequestOverlay() {
     const overlay = document.querySelector('.requestOverlay');
 
@@ -29,17 +33,12 @@ function openRequestOverlay(url?: string) {
     closeButton.innerHTML = '<span class="material-icons" aria-hidden="true">close</span>';
     closeButton.addEventListener('click', closeRequestOverlay);
 
-    const title = document.createElement('span');
-    title.className = 'requestOverlayTitle';
-    title.textContent = 'Request';
-
     const frame = document.createElement('iframe');
     frame.className = 'requestOverlayFrame';
     frame.title = 'Request media';
     frame.src = url || 'about:blank';
 
     header.appendChild(closeButton);
-    header.appendChild(title);
     overlay.appendChild(header);
     overlay.appendChild(frame);
     document.body.appendChild(overlay);
@@ -48,7 +47,10 @@ function openRequestOverlay(url?: string) {
     return frame;
 }
 
-export async function getSeerrSsoRedirectUrl(requestUrl = getRequestHref()) {
+export async function getSeerrSsoRedirectUrl(
+    requestUrl = getRequestHref(),
+    options: SeerrSsoRedirectOptions = {}
+) {
     const apiClient = ServerConnections.currentApiClient();
     const jellyfinToken = apiClient?.accessToken?.();
 
@@ -64,7 +66,8 @@ export async function getSeerrSsoRedirectUrl(requestUrl = getRequestHref()) {
         },
         body: JSON.stringify({
             jellyfinToken,
-            returnTo: '/'
+            returnTo: '/',
+            embedded: options.embedded
         })
     });
 
@@ -81,7 +84,7 @@ export async function openSeerrRequest(requestUrl = getRequestHref()) {
         const requestFrame = openRequestOverlay();
 
         try {
-            requestFrame.src = await getSeerrSsoRedirectUrl(requestUrl);
+            requestFrame.src = await getSeerrSsoRedirectUrl(requestUrl, { embedded: true });
         } catch (err) {
             console.warn('Unable to use Jellyfin SSO for request link', err);
             requestFrame.src = requestUrl;

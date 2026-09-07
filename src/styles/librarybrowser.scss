@@ -299,6 +299,7 @@
 .requestOverlayHeader {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     min-height: calc(3.5em + env(safe-area-inset-top));
     padding-top: env(safe-area-inset-top);
     background: rgb(32 32 32 / 96%);
@@ -310,15 +311,6 @@
 .requestOverlayClose {
     width: 3.5em;
     height: 3.5em;
-}
-
-.requestOverlayTitle {
-    overflow: hidden;
-    font-size: 1.1em;
-    font-weight: 500;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .requestOverlayFrame {

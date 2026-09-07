@@ -417,17 +417,12 @@ function openRequestOverlay(url) {
     closeButton.innerHTML = '<span class="material-icons close" aria-hidden="true"></span>';
     closeButton.addEventListener('click', closeRequestOverlay);
 
-    const title = document.createElement('span');
-    title.className = 'requestOverlayTitle';
-    title.textContent = 'Request';
-
     const frame = document.createElement('iframe');
     frame.className = 'requestOverlayFrame';
     frame.title = 'Request media';
     frame.src = url || 'about:blank';
 
     header.appendChild(closeButton);
-    header.appendChild(title);
     overlay.appendChild(header);
     overlay.appendChild(frame);
     document.body.appendChild(overlay);
@@ -455,7 +450,7 @@ async function onRequestLinkClick(e) {
     }
 
     try {
-        const redirectUrl = await getSeerrSsoRedirectUrl(requestUrl);
+        const redirectUrl = await getSeerrSsoRedirectUrl(requestUrl, { embedded: !!requestFrame });
 
         if (requestFrame) {
             requestFrame.src = redirectUrl;
