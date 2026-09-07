@@ -8,12 +8,22 @@ interface SeerrSsoRedirectOptions {
     jellyfinReturnUrl?: string;
 }
 
+export function isSeerrMobileRequestContext() {
+    const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches;
+    const narrowViewport = window.matchMedia?.('(max-width: 50em)').matches;
+    const standaloneDisplay = window.matchMedia?.('(display-mode: standalone)').matches;
+    const iosStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+    return layoutManager.mobile || standaloneDisplay || iosStandalone || (coarsePointer && narrowViewport);
+}
+
 export async function getSeerrSsoRedirectUrl(
     requestUrl = getRequestHref(),
     options: SeerrSsoRedirectOptions = {}
 ) {
     const apiClient = ServerConnections.currentApiClient();
     const jellyfinToken = apiClient?.accessToken?.();
+    const jellyfinReturnUrl = options.jellyfinReturnUrl || window.location.href;
 
     if (!jellyfinToken) {
         return requestUrl;
@@ -29,7 +39,7 @@ export async function getSeerrSsoRedirectUrl(
             jellyfinToken,
             returnTo: '/',
             embedded: options.embedded,
-            jellyfinReturnUrl: options.jellyfinReturnUrl
+            jellyfinReturnUrl
         })
     });
 
@@ -42,7 +52,7 @@ export async function getSeerrSsoRedirectUrl(
 }
 
 export async function openSeerrRequest(requestUrl = getRequestHref()) {
-    if (layoutManager.mobile) {
+    if (isSeerrMobileRequestContext()) {
         try {
             window.location.href = await getSeerrSsoRedirectUrl(requestUrl, {
                 jellyfinReturnUrl: window.location.href

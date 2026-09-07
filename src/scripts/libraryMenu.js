@@ -25,7 +25,7 @@ import Dashboard, { pageClassOn } from '../utils/dashboard';
 import Events from '../utils/events.ts';
 import { getParameterByName } from '../utils/url.ts';
 import { getRequestHref } from '../utils/requestUrl.ts';
-import { getSeerrSsoRedirectUrl } from '../utils/seerrSso.ts';
+import { isSeerrMobileRequestContext, openSeerrRequest } from '../utils/seerrSso.ts';
 import datetime from '../scripts/datetime';
 
 import '../elements/emby-button/paper-icon-button-light';
@@ -393,39 +393,14 @@ function onSidebarLinkClick() {
 
 async function onRequestLinkClick(e) {
     const requestUrl = this.href;
-    let requestWindow;
 
     e.preventDefault();
 
-    if (layoutManager.mobile) {
+    if (isSeerrMobileRequestContext()) {
         closeMainDrawer();
-    } else {
-        requestWindow = window.open('about:blank', '_blank');
-
-        if (requestWindow) {
-            requestWindow.opener = null;
-        }
     }
 
-    try {
-        const redirectUrl = await getSeerrSsoRedirectUrl(requestUrl, {
-            jellyfinReturnUrl: layoutManager.mobile ? window.location.href : undefined
-        });
-
-        if (requestWindow) {
-            requestWindow.location.href = redirectUrl;
-        } else {
-            window.location.href = redirectUrl;
-        }
-    } catch (err) {
-        console.warn('Unable to use Jellyfin SSO for request link', err);
-
-        if (requestWindow) {
-            requestWindow.location.href = requestUrl;
-        } else {
-            window.location.href = requestUrl;
-        }
-    }
+    await openSeerrRequest(requestUrl);
 }
 
 function getUserViews(apiClient, userId) {
