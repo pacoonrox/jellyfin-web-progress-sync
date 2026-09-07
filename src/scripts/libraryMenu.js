@@ -391,55 +391,13 @@ function onSidebarLinkClick() {
     LibraryMenu.setTitle(text);
 }
 
-function closeRequestOverlay() {
-    const overlay = document.querySelector('.requestOverlay');
-
-    if (overlay) {
-        overlay.remove();
-    }
-
-    document.body.classList.remove('bodyWithPopupOpen');
-}
-
-function openRequestOverlay(url) {
-    closeRequestOverlay();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'requestOverlay';
-
-    const header = document.createElement('div');
-    header.className = 'requestOverlayHeader';
-
-    const closeButton = document.createElement('button', { is: 'paper-icon-button-light' });
-    closeButton.className = 'requestOverlayClose';
-    closeButton.type = 'button';
-    closeButton.title = globalize.translate('ButtonBack');
-    closeButton.innerHTML = '<span class="material-icons close" aria-hidden="true"></span>';
-    closeButton.addEventListener('click', closeRequestOverlay);
-
-    const frame = document.createElement('iframe');
-    frame.className = 'requestOverlayFrame';
-    frame.title = 'Request media';
-    frame.src = url || 'about:blank';
-
-    header.appendChild(closeButton);
-    overlay.appendChild(header);
-    overlay.appendChild(frame);
-    document.body.appendChild(overlay);
-    document.body.classList.add('bodyWithPopupOpen');
-
-    return frame;
-}
-
 async function onRequestLinkClick(e) {
     const requestUrl = this.href;
     let requestWindow;
-    let requestFrame;
 
     e.preventDefault();
 
     if (layoutManager.mobile) {
-        requestFrame = openRequestOverlay();
         closeMainDrawer();
     } else {
         requestWindow = window.open('about:blank', '_blank');
@@ -450,11 +408,11 @@ async function onRequestLinkClick(e) {
     }
 
     try {
-        const redirectUrl = await getSeerrSsoRedirectUrl(requestUrl, { embedded: !!requestFrame });
+        const redirectUrl = await getSeerrSsoRedirectUrl(requestUrl, {
+            jellyfinReturnUrl: layoutManager.mobile ? window.location.href : undefined
+        });
 
-        if (requestFrame) {
-            requestFrame.src = redirectUrl;
-        } else if (requestWindow) {
+        if (requestWindow) {
             requestWindow.location.href = redirectUrl;
         } else {
             window.location.href = redirectUrl;
@@ -462,9 +420,7 @@ async function onRequestLinkClick(e) {
     } catch (err) {
         console.warn('Unable to use Jellyfin SSO for request link', err);
 
-        if (requestFrame) {
-            requestFrame.src = requestUrl;
-        } else if (requestWindow) {
+        if (requestWindow) {
             requestWindow.location.href = requestUrl;
         } else {
             window.location.href = requestUrl;
