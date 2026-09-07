@@ -9,5 +9,5 @@ export function getRequestHref() {
         return `${protocol}//${hostname}${port}`;
     }
 
-    return `${protocol}//request.${hostname}`;
+    return `${protocol}//request.${labels.slice(-2).join('.')}`;
 }
