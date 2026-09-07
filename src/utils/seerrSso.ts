@@ -1,6 +1,52 @@
 import { ServerConnections } from 'lib/jellyfin-apiclient';
+import layoutManager from 'components/layoutManager';
 
 import { getRequestHref } from './requestUrl';
+
+function closeRequestOverlay() {
+    const overlay = document.querySelector('.requestOverlay');
+
+    if (overlay) {
+        overlay.remove();
+    }
+
+    document.body.classList.remove('bodyWithPopupOpen');
+}
+
+function openRequestOverlay(url?: string) {
+    closeRequestOverlay();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'requestOverlay';
+
+    const header = document.createElement('div');
+    header.className = 'requestOverlayHeader';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'requestOverlayClose';
+    closeButton.type = 'button';
+    closeButton.title = 'Back';
+    closeButton.innerHTML = '<span class="material-icons" aria-hidden="true">close</span>';
+    closeButton.addEventListener('click', closeRequestOverlay);
+
+    const title = document.createElement('span');
+    title.className = 'requestOverlayTitle';
+    title.textContent = 'Request';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'requestOverlayFrame';
+    frame.title = 'Request media';
+    frame.src = url || 'about:blank';
+
+    header.appendChild(closeButton);
+    header.appendChild(title);
+    overlay.appendChild(header);
+    overlay.appendChild(frame);
+    document.body.appendChild(overlay);
+    document.body.classList.add('bodyWithPopupOpen');
+
+    return frame;
+}
 
 export async function getSeerrSsoRedirectUrl(requestUrl = getRequestHref()) {
     const apiClient = ServerConnections.currentApiClient();
@@ -31,6 +77,19 @@ export async function getSeerrSsoRedirectUrl(requestUrl = getRequestHref()) {
 }
 
 export async function openSeerrRequest(requestUrl = getRequestHref()) {
+    if (layoutManager.mobile) {
+        const requestFrame = openRequestOverlay();
+
+        try {
+            requestFrame.src = await getSeerrSsoRedirectUrl(requestUrl);
+        } catch (err) {
+            console.warn('Unable to use Jellyfin SSO for request link', err);
+            requestFrame.src = requestUrl;
+        }
+
+        return;
+    }
+
     const requestWindow = window.open('about:blank', '_blank');
 
     if (requestWindow) {
