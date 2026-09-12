@@ -1,5 +1,7 @@
 import createDOMPurify from 'dompurify';
+import escapeHtml from 'escape-html';
 import markdownIt from 'markdown-it';
+import QRCode from 'qrcode';
 
 import { AppFeature } from 'constants/appFeature';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
@@ -30,6 +32,40 @@ domPurify.setConfig({
 
 const enableFocusTransform = !browser.slow && !browser.edge;
 
+function getQuickConnectAuthorizeUrl(code) {
+    const route = '#/quickconnect?code=' + encodeURIComponent(code);
+
+    return `${window.location.origin}${window.location.pathname}${route}`;
+}
+
+async function getQuickConnectDialogHtml(code) {
+    const authorizeUrl = getQuickConnectAuthorizeUrl(code);
+    let qrHtml = '';
+
+    try {
+        const qrDataUrl = await QRCode.toDataURL(authorizeUrl, {
+            errorCorrectionLevel: 'M',
+            margin: 1,
+            width: 196,
+            color: {
+                dark: '#0b1016',
+                light: '#ffffff'
+            }
+        });
+
+        qrHtml = `<img class="quickConnectLoginQr" src="${qrDataUrl}" alt="Quick Connect QR code" />`;
+    } catch (err) {
+        console.warn('[LoginPage] unable to render Quick Connect QR code', err);
+    }
+
+    return `
+        <div class="quickConnectLoginPrompt">
+            ${qrHtml}
+            <div class="quickConnectLoginCode">${escapeHtml(code)}</div>
+        </div>
+    `;
+}
+
 function authenticateUserByName(page, apiClient, url, username, password) {
     loading.show();
     apiClient.authenticateUserByName(username, password).then(function (result) {
@@ -56,7 +92,7 @@ function authenticateUserByName(page, apiClient, url, username, password) {
 
 function authenticateQuickConnect(apiClient, targetUrl) {
     const url = apiClient.getUrl('/QuickConnect/Initiate');
-    apiClient.ajax({ type: 'POST', url }, true).then(res => res.json()).then(function (json) {
+    apiClient.ajax({ type: 'POST', url }, true).then(res => res.json()).then(async function (json) {
         if (!json.Secret || !json.Code) {
             console.error('Malformed quick connect response', json);
             return false;
@@ -67,7 +103,7 @@ function authenticateQuickConnect(apiClient, targetUrl) {
                 id: 'quickConnectAlert'
             },
             title: globalize.translate('QuickConnect'),
-            text: globalize.translate('QuickConnectAuthorizeCode', json.Code)
+            html: await getQuickConnectDialogHtml(json.Code)
         });
 
         const connectUrl = apiClient.getUrl('/QuickConnect/Connect?Secret=' + json.Secret);
@@ -252,9 +288,6 @@ export default function (view, params) {
         e.preventDefault();
         return false;
     });
-    view.querySelector('.btnForgotPassword').addEventListener('click', function () {
-        Dashboard.navigate('forgotpassword');
-    });
     view.querySelector('.btnCancel').addEventListener('click', showVisualForm);
     view.querySelector('.btnQuick').addEventListener('click', function () {
         authenticateQuickConnect(getApiClient(), getTargetUrl());
@@ -322,4 +355,3 @@ export default function (view, params) {
         libraryMenu.setTransparentMenu(false);
     });
 }
-

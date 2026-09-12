@@ -56,6 +56,15 @@ export function getServers() {
     });
 }
 
+export function getCustomLinks() {
+    return getConfig().then(config => {
+        return config.customLinks || DefaultConfig.customLinks || {};
+    }).catch(error => {
+        console.log('cannot get web config:', error);
+        return DefaultConfig.customLinks || {};
+    });
+}
+
 const baseDefaultTheme = {
     'name': 'Dark',
     'id': 'dark',

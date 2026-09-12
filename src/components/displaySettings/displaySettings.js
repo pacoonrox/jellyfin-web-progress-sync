@@ -131,6 +131,7 @@ function loadForm(context, user, userSettings) {
     context.querySelector('#chkDetailsBanner').checked = userSettings.detailsBanner();
 
     context.querySelector('#chkDisableCustomCss').checked = userSettings.disableCustomCss();
+    context.querySelector('#chkCinematicSkin').checked = userSettings.enableCinematicSkin();
     context.querySelector('#txtLocalCustomCss').value = userSettings.customCss();
 
     context.querySelector('#selectLanguage').value = userSettings.language() || '';
@@ -179,6 +180,7 @@ function saveUser(context, user, userSettingsInstance, apiClient) {
     userSettingsInstance.detailsBanner(context.querySelector('#chkDetailsBanner').checked);
 
     userSettingsInstance.disableCustomCss(context.querySelector('#chkDisableCustomCss').checked);
+    userSettingsInstance.enableCinematicSkin(context.querySelector('#chkCinematicSkin').checked);
     userSettingsInstance.customCss(context.querySelector('#txtLocalCustomCss').value);
 
     if (user.Id === apiClient.getCurrentUserId()) {

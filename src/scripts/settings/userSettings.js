@@ -328,6 +328,19 @@ export class UserSettings {
     }
 
     /**
+     * Get or set 'Cinematic Skin' state.
+     * @param {boolean|undefined} [val] - Flag to enable 'Cinematic Skin' or undefined.
+     * @return {boolean} 'Cinematic Skin' state.
+     */
+    enableCinematicSkin(val) {
+        if (val !== undefined) {
+            return this.set('enableCinematicSkin', val.toString(), false);
+        }
+
+        return toBoolean(this.get('enableCinematicSkin', false), true);
+    }
+
+    /**
      * Get or set customCss.
      * @param {string|undefined} [val] - Language.
      * @return {string} Language.
@@ -765,6 +778,7 @@ export const setFilter = currentSettings.setFilter.bind(currentSettings);
 export const getFilter = currentSettings.getFilter.bind(currentSettings);
 export const customCss = currentSettings.customCss.bind(currentSettings);
 export const disableCustomCss = currentSettings.disableCustomCss.bind(currentSettings);
+export const enableCinematicSkin = currentSettings.enableCinematicSkin.bind(currentSettings);
 export const getSavedView = currentSettings.getSavedView.bind(currentSettings);
 export const saveViewSetting = currentSettings.saveViewSetting.bind(currentSettings);
 export const getSortValuesLegacy = currentSettings.getSortValuesLegacy.bind(currentSettings);

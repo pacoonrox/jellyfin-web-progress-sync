@@ -15,6 +15,7 @@ import itemHelper, { canEditPlaylist } from './itemHelper';
 import { playbackManager } from './playback/playbackmanager';
 import toast from './toast/toast';
 import * as userSettings from '../scripts/settings/userSettings';
+import { getCustomLinks } from '../scripts/settings/webSettings';
 
 /** Item types that support downloading all children. */
 const DOWNLOAD_ALL_TYPES = [
@@ -22,6 +23,12 @@ const DOWNLOAD_ALL_TYPES = [
     BaseItemKind.MusicAlbum,
     BaseItemKind.Season,
     BaseItemKind.Series
+];
+
+const SERIES_MANAGER_TYPES = [
+    BaseItemKind.Series,
+    BaseItemKind.Season,
+    BaseItemKind.Episode
 ];
 
 function getDeleteLabel(type) {
@@ -314,6 +321,34 @@ export async function getCommands(options) {
         });
     }
 
+    if (item.Type === BaseItemKind.Movie && user.Policy.IsAdministrator) {
+        commands.push({
+            name: 'Open in Radarr',
+            id: 'openradarr',
+            icon: 'movie'
+        });
+
+        commands.push({
+            name: 'Open Movie Ratings',
+            id: 'openmovieratings',
+            icon: 'bar_chart'
+        });
+    }
+
+    if (SERIES_MANAGER_TYPES.includes(item.Type) && user.Policy.IsAdministrator) {
+        commands.push({
+            name: 'Open in Sonarr',
+            id: 'opensonarr',
+            icon: 'tv'
+        });
+
+        commands.push({
+            name: 'Open Series Graph',
+            id: 'openseriesgraph',
+            icon: 'bar_chart'
+        });
+    }
+
     if (item.PlaylistItemId && options.playlistId && options.canEditPlaylist) {
         commands.push({
             name: globalize.translate('RemoveFromPlaylist'),
@@ -452,6 +487,147 @@ function syncProgressToUser(apiClient, item, currentUser) {
             });
         });
     });
+}
+
+function providerId(item, keys) {
+    const providerIds = item.ProviderIds || {};
+    for (const key of keys) {
+        if (providerIds[key]) {
+            return providerIds[key];
+        }
+    }
+    return '';
+}
+
+function getRadarrTerm(item) {
+    const tmdbId = providerId(item, ['Tmdb', 'TMDb', 'TheMovieDb']);
+    if (tmdbId) {
+        return `tmdb:${tmdbId}`;
+    }
+
+    const imdbId = providerId(item, ['Imdb', 'IMDb']);
+    if (imdbId) {
+        return `imdb:${imdbId}`;
+    }
+
+    return item.OriginalTitle || item.Name || '';
+}
+
+function getSonarrTerm(item) {
+    const tvdbId = providerId(item, ['Tvdb', 'TVDb']);
+    if (tvdbId) {
+        return `tvdb:${tvdbId}`;
+    }
+
+    const tmdbId = providerId(item, ['Tmdb', 'TMDb', 'TheMovieDb']);
+    if (tmdbId) {
+        return `tmdb:${tmdbId}`;
+    }
+
+    const imdbId = providerId(item, ['Imdb', 'IMDb']);
+    if (imdbId) {
+        return `imdb:${imdbId}`;
+    }
+
+    return item.OriginalTitle || item.Name || '';
+}
+
+function getSeriesId(item) {
+    if (item.Type === BaseItemKind.Series) {
+        return item.Id;
+    }
+
+    return item.SeriesId || '';
+}
+
+function getSeriesItem(apiClient, item) {
+    const seriesId = getSeriesId(item);
+    if (!seriesId || seriesId === item.Id) {
+        return Promise.resolve(item);
+    }
+
+    return apiClient.getItem(apiClient.getCurrentUserId(), seriesId).catch(() => item);
+}
+
+function slugify(value) {
+    let slug = String(value || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-');
+
+    while (slug.startsWith('-')) {
+        slug = slug.slice(1);
+    }
+
+    while (slug.endsWith('-')) {
+        slug = slug.slice(0, -1);
+    }
+
+    return slug;
+}
+
+function getSeriesGraphUrl(item) {
+    const tmdbId = providerId(item, ['Tmdb', 'TMDb', 'TheMovieDb']);
+    if (!tmdbId) {
+        return 'https://seriesgraph.com/';
+    }
+
+    const slug = slugify(item.OriginalTitle || item.Name || '');
+    return `https://seriesgraph.com/show/${tmdbId}${slug ? '-' + slug : ''}`;
+}
+
+function getMovieRatingsUrl(item) {
+    const imdbId = providerId(item, ['Imdb', 'IMDb']);
+    if (imdbId) {
+        return `https://www.imdb.com/title/${imdbId}/ratings/`;
+    }
+
+    const tmdbId = providerId(item, ['Tmdb', 'TMDb', 'TheMovieDb']);
+    if (tmdbId) {
+        return `https://www.themoviedb.org/movie/${tmdbId}`;
+    }
+
+    return 'https://www.imdb.com/';
+}
+
+function normalizeBaseUrl(url) {
+    url = String(url || '');
+    while (url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+
+    return url;
+}
+
+function openExternalManager(apiClient, item, manager) {
+    return getCustomLinks().then(customLinks => {
+        const isRadarr = manager === 'radarr';
+        const baseUrl = normalizeBaseUrl(isRadarr ? customLinks.radarrUrl : customLinks.sonarrUrl);
+
+        if (!baseUrl) {
+            toast(`${isRadarr ? 'Radarr' : 'Sonarr'} URL is not configured`);
+            return;
+        }
+
+        const itemPromise = isRadarr ? Promise.resolve(item) : getSeriesItem(apiClient, item);
+        return itemPromise.then(managerItem => {
+            const term = isRadarr ? getRadarrTerm(managerItem) : getSonarrTerm(managerItem);
+            const url = `${baseUrl}/add/new?term=${encodeURIComponent(term)}`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        });
+    });
+}
+
+function openSeriesGraph(apiClient, item) {
+    return getSeriesItem(apiClient, item).then(seriesItem => {
+        window.open(getSeriesGraphUrl(seriesItem), '_blank', 'noopener,noreferrer');
+    });
+}
+
+function openMovieRatings(item) {
+    window.open(getMovieRatingsUrl(item), '_blank', 'noopener,noreferrer');
+    return Promise.resolve();
 }
 
 function executeCommand(item, id, options) {
@@ -611,6 +787,18 @@ function executeCommand(item, id, options) {
                 break;
             case 'syncprogresstouser':
                 syncProgressToUser(apiClient, item, options.user).then(getResolveFunction(resolve, id, true), getResolveFunction(resolve, id));
+                break;
+            case 'openradarr':
+                openExternalManager(apiClient, item, 'radarr').then(getResolveFunction(resolve, id), getResolveFunction(resolve, id));
+                break;
+            case 'opensonarr':
+                openExternalManager(apiClient, item, 'sonarr').then(getResolveFunction(resolve, id), getResolveFunction(resolve, id));
+                break;
+            case 'openseriesgraph':
+                openSeriesGraph(apiClient, item).then(getResolveFunction(resolve, id), getResolveFunction(resolve, id));
+                break;
+            case 'openmovieratings':
+                openMovieRatings(item).then(getResolveFunction(resolve, id), getResolveFunction(resolve, id));
                 break;
             case 'open':
                 appRouter.showItem(item);

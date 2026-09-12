@@ -718,7 +718,7 @@ let navDrawerInstance;
 let mainDrawerButton;
 let headerHomeButton;
 let currentDrawerType;
-let documentTitle = 'Jellyfin';
+const documentTitle = 'Gooners';
 let pageTitleElement;
 let headerBackButton;
 let headerUserButton;
@@ -754,8 +754,7 @@ function setTabs (type, selectedIndex, builder) {
 const fetchServerName = (_apiClient) => {
     _apiClient
         ?.getPublicSystemInfo()
-        .then(({ ServerName }) => {
-            documentTitle = ServerName || documentTitle;
+        .then(() => {
             document.title = documentTitle;
         })
         .catch(err => {
@@ -769,10 +768,10 @@ function setDefaultTitle () {
     }
 
     if (pageTitleElement) {
-        pageTitleElement.classList.add('pageTitleWithLogo');
-        pageTitleElement.classList.add('pageTitleWithDefaultLogo');
+        pageTitleElement.classList.remove('pageTitleWithLogo');
+        pageTitleElement.classList.remove('pageTitleWithDefaultLogo');
         pageTitleElement.style.backgroundImage = null;
-        pageTitleElement.innerHTML = '';
+        pageTitleElement.innerText = documentTitle;
     }
 
     document.title = documentTitle;

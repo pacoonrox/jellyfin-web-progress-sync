@@ -11,9 +11,17 @@ export interface MenuLink {
     url: string
 }
 
+export interface CustomLinks {
+    localSeerrUrl?: string
+    radarrUrl?: string
+    sonarrUrl?: string
+    requestSubdomain?: string
+}
+
 export interface WebConfig {
     includeCorsCredentials?: boolean
     multiserver?: boolean
+    customLinks?: CustomLinks
     themes?: Theme[]
     menuLinks?: MenuLink[]
     servers?: string[]

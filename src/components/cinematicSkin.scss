@@ -1,0 +1,552 @@
+body.cinematicSkin {
+    background:
+        radial-gradient(circle at 16% 0%, rgba(53, 86, 129, 0.24), transparent 36rem),
+        linear-gradient(180deg, #10151c 0%, #0b1016 42%, #080b10 100%);
+    color: #eef3f8;
+}
+
+body.cinematicSkin .skinBody,
+body.cinematicSkin .backgroundContainer,
+body.cinematicSkin .mainAnimatedPages {
+    background: transparent !important;
+}
+
+body.cinematicSkin .skinHeader {
+    background: rgba(10, 15, 22, 0.78);
+    border-bottom: 1px solid rgba(167, 179, 196, 0.14);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(18px) saturate(1.18);
+}
+
+body.cinematicSkin .mainDrawer,
+body.cinematicSkin .drawer-open {
+    background: rgba(12, 18, 27, 0.94);
+    border-right: 1px solid rgba(167, 179, 196, 0.12);
+}
+
+body.cinematicSkin .navMenuOption,
+body.cinematicSkin .paperList .listItem {
+    border-radius: 14px;
+}
+
+body.cinematicSkin .navMenuOption-selected {
+    background: rgba(75, 118, 179, 0.34) !important;
+    color: #fff;
+}
+
+body.cinematicSkin .pageTitle,
+body.cinematicSkin .sectionTitle,
+body.cinematicSkin h1,
+body.cinematicSkin h2,
+body.cinematicSkin h3 {
+    color: rgba(232, 238, 245, 0.88);
+    letter-spacing: 0;
+}
+
+body.cinematicSkin .sectionTitle {
+    margin-bottom: 0.85rem;
+    font-weight: 620;
+}
+
+body.cinematicSkin .card,
+body.cinematicSkin .itemDetailImage,
+body.cinematicSkin .cardScalable,
+body.cinematicSkin .cardImageContainer,
+body.cinematicSkin .coveredImage {
+    border-radius: 16px;
+}
+
+body.cinematicSkin .cardImageContainer {
+    overflow: hidden;
+    background-color: rgba(20, 30, 43, 0.78);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+        0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+body.cinematicSkin .card,
+body.cinematicSkin .cardBox,
+body.cinematicSkin .cardScalable,
+body.cinematicSkin .cardPadder,
+body.cinematicSkin .cardContent,
+body.cinematicSkin .cardImage,
+body.cinematicSkin .cardImageContainer,
+body.cinematicSkin .coveredImage,
+body.cinematicSkin .blurhash-canvas,
+body.cinematicSkin .visualCardBox,
+body.cinematicSkin .cardOverlayContainer {
+    scale: 1 !important;
+    transform: none !important;
+    transform-origin: center center !important;
+}
+
+body.cinematicSkin .visualCardBox,
+body.cinematicSkin .cardBox:not(.visualCardBox) .cardPadder {
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.cinematicSkin .card {
+    transition:
+        filter 180ms ease,
+        box-shadow 180ms ease;
+}
+
+body.cinematicSkin .itemsContainer .card,
+body.cinematicSkin .itemsContainer .cardBox,
+body.cinematicSkin .itemsContainer .cardScalable,
+body.cinematicSkin .itemsContainer .cardContent,
+body.cinematicSkin .itemsContainer .cardImageContainer,
+body.cinematicSkin .itemsContainer .coveredImage {
+    transition-property: opacity, filter, box-shadow !important;
+}
+
+body.cinematicSkin .card.show-animation .cardBox {
+    transition: none;
+    will-change: auto;
+}
+
+body.cinematicSkin .card-hoverable:hover,
+body.cinematicSkin .card-hoverable:focus-within,
+body.cinematicSkin .card:focus,
+body.cinematicSkin .card:focus-visible,
+body.cinematicSkin .card.show-focus,
+body.cinematicSkin .card.show-animation:focus {
+    filter: saturate(1.025) contrast(1.015);
+    transform: none !important;
+}
+
+body.cinematicSkin .card-hoverable:hover .cardBox,
+body.cinematicSkin .card-hoverable:focus-within .cardBox,
+body.cinematicSkin .card:focus .cardBox,
+body.cinematicSkin .card:focus-visible .cardBox,
+body.cinematicSkin .card.show-focus .cardBox,
+body.cinematicSkin .card.show-animation:focus > .cardBox,
+body.cinematicSkin .card.show-animation:focus-within > .cardBox,
+body.cinematicSkin .card.show-animation:hover > .cardBox,
+body.cinematicSkin .card-hoverable:hover .cardScalable,
+body.cinematicSkin .card-hoverable:focus-within .cardScalable,
+body.cinematicSkin .card:focus .cardScalable,
+body.cinematicSkin .card:focus-visible .cardScalable,
+body.cinematicSkin .card.show-focus .cardScalable,
+body.cinematicSkin .card.show-animation:focus .cardScalable {
+    transform: none !important;
+}
+
+body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox {
+    margin: 0.6em !important;
+}
+
+body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox.visualCardBox,
+body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox:not(.visualCardBox) .cardScalable {
+    border-width: 0 !important;
+}
+
+body.cinematicSkin .padded-top-focusscale,
+body.cinematicSkin .padded-bottom-focusscale {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+body.cinematicSkin .cardOverlayContainer > .cardOverlayFab-primary:hover {
+    transform: none !important;
+}
+
+body.cinematicSkin .cardText,
+body.cinematicSkin .fieldDescription,
+body.cinematicSkin .overview,
+body.cinematicSkin .secondaryText {
+    color: rgba(222, 230, 239, 0.74);
+}
+
+body.cinematicSkin .detailPagePrimaryContainer {
+    background:
+        linear-gradient(90deg, rgba(8, 12, 18, 0.98), rgba(8, 12, 18, 0.68) 56%, rgba(8, 12, 18, 0.25)),
+        linear-gradient(180deg, rgba(8, 12, 18, 0), rgba(8, 12, 18, 0.92));
+}
+
+body.cinematicSkin .detailPageWrapperContainer {
+    background: linear-gradient(180deg, rgba(8, 12, 18, 0.12), rgba(8, 12, 18, 0.82) 34%, #080b10 100%);
+}
+
+body.cinematicSkin .detailPageSecondaryContainer {
+    background: rgba(8, 12, 18, 0.22);
+}
+
+body.cinematicSkin .detailLogo,
+body.cinematicSkin .itemName,
+body.cinematicSkin .parentName {
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.46);
+}
+
+body.cinematicSkin .emby-button,
+body.cinematicSkin .paper-icon-button-light,
+body.cinematicSkin button {
+    border-radius: 999px;
+}
+
+body.cinematicSkin .raised,
+body.cinematicSkin .button-submit,
+body.cinematicSkin .button-flat:hover,
+body.cinematicSkin .button-link:hover {
+    background: #3f7fc5;
+    color: #fff;
+}
+
+body.cinematicSkin .fab,
+body.cinematicSkin .btnPlay,
+body.cinematicSkin .btnResume {
+    background: #3f7fc5 !important;
+    color: #fff !important;
+    box-shadow: 0 12px 28px rgba(63, 127, 197, 0.32);
+}
+
+body.cinematicSkin .detailButton,
+body.cinematicSkin .headerButton,
+body.cinematicSkin .listItemButton {
+    color: rgba(241, 246, 252, 0.88);
+}
+
+body.cinematicSkin .detailButton {
+    min-width: 3.2rem;
+    background: rgba(14, 22, 32, 0.56);
+    border: 1px solid rgba(184, 202, 225, 0.14);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(12px);
+}
+
+body.cinematicSkin .detailButton:hover,
+body.cinematicSkin .detailButton:focus {
+    background: rgba(63, 127, 197, 0.28);
+    border-color: rgba(113, 169, 220, 0.42);
+}
+
+body.cinematicSkin input,
+body.cinematicSkin textarea,
+body.cinematicSkin select,
+body.cinematicSkin .emby-input,
+body.cinematicSkin .emby-select,
+body.cinematicSkin .emby-textarea {
+    background: rgba(17, 25, 36, 0.84);
+    border-color: rgba(174, 190, 211, 0.18);
+    border-radius: 12px;
+    color: #f2f6fa;
+}
+
+body.cinematicSkin .paperList,
+body.cinematicSkin .dialog,
+body.cinematicSkin .formDialogHeader,
+body.cinematicSkin .formDialogFooter,
+body.cinematicSkin .settingsContainer {
+    background: rgba(13, 19, 28, 0.7);
+    border-color: rgba(174, 190, 211, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+}
+
+body.cinematicSkin .listItem:hover,
+body.cinematicSkin .itemAction:hover,
+body.cinematicSkin .focusable:focus {
+    background: rgba(75, 118, 179, 0.22);
+}
+
+body.cinematicSkin .checkboxContainer,
+body.cinematicSkin .selectContainer,
+body.cinematicSkin .inputContainer {
+    color: #eef3f8;
+}
+
+body.cinematicSkin .mediaInfoItem,
+body.cinematicSkin .tag,
+body.cinematicSkin .itemMiscInfo,
+body.cinematicSkin .itemExternalLinks {
+    color: rgba(224, 232, 242, 0.76);
+}
+
+body.cinematicSkin .tag,
+body.cinematicSkin .itemTags a,
+body.cinematicSkin .mediaInfoItem {
+    border-radius: 999px;
+}
+
+body.cinematicSkin .tag,
+body.cinematicSkin .itemTags a {
+    background: rgba(22, 33, 46, 0.72);
+    border: 1px solid rgba(174, 190, 211, 0.16);
+    color: rgba(238, 243, 248, 0.86);
+}
+
+body.cinematicSkin .verticalSection,
+body.cinematicSkin .homePage .verticalSection {
+    margin-bottom: 1.45rem;
+}
+
+body.cinematicSkin .itemsContainer {
+    gap: 0.35rem;
+}
+
+body.cinematicSkin .sectionTitleContainer {
+    align-items: center;
+}
+
+body.cinematicSkin .sectionTitleButton,
+body.cinematicSkin .sectionTitleIconButton {
+    border-radius: 999px;
+    background: rgba(16, 24, 35, 0.55);
+    border: 1px solid rgba(174, 190, 211, 0.12);
+}
+
+body.cinematicSkin .cardOverlayContainer {
+    background: linear-gradient(180deg, transparent 0%, rgba(6, 10, 15, 0.72) 100%);
+}
+
+body.cinematicSkin .cardText-first {
+    color: rgba(248, 250, 252, 0.96);
+    font-weight: 650;
+}
+
+body.cinematicSkin .countIndicator,
+body.cinematicSkin .playedIndicator,
+body.cinematicSkin .missingIndicator,
+body.cinematicSkin .unairedIndicator {
+    border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+body.cinematicSkin .formDialogHeader,
+body.cinematicSkin .formDialogFooter,
+body.cinematicSkin .dialog {
+    border-radius: 18px;
+}
+
+body.cinematicSkin .toast {
+    border-radius: 999px;
+    background: rgba(13, 20, 30, 0.92);
+    border: 1px solid rgba(174, 190, 211, 0.16);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+}
+
+body.cinematicSkin ::selection {
+    background: rgba(79, 155, 217, 0.38);
+}
+
+body.cinematicSkin .progressring-spiner,
+body.cinematicSkin .mdl-spinner__layer-1,
+body.cinematicSkin .mdl-spinner__layer-2,
+body.cinematicSkin .mdl-spinner__layer-3,
+body.cinematicSkin .mdl-spinner__layer-4 {
+    border-color: #72a7df;
+}
+
+body.cinematicSkin #loginPage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background:
+        linear-gradient(180deg, rgba(9, 12, 16, 0.9), rgba(9, 12, 16, 0.98)),
+        radial-gradient(circle at 50% 12%, rgba(92, 126, 156, 0.2), transparent 34rem),
+        #090c10;
+}
+
+body.cinematicSkin #loginPage .padded-bottom-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: min(42rem, calc(100vw - 2rem));
+    min-height: 100vh;
+    margin: 0 !important;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+body.cinematicSkin #loginPage .visualLoginForm,
+body.cinematicSkin #loginPage .manualLoginForm,
+body.cinematicSkin #loginPage .readOnlyContent {
+    width: min(100%, 30rem);
+}
+
+body.cinematicSkin #loginPage .visualLoginForm,
+body.cinematicSkin #loginPage .manualLoginForm {
+    box-sizing: border-box;
+    padding: 2rem 2rem 1.75rem;
+    border: 1px solid rgba(221, 228, 236, 0.12);
+    border-radius: 20px;
+    background: rgba(13, 17, 23, 0.84);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 24px 64px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(16px);
+}
+
+body.cinematicSkin #loginPage .visualLoginForm h1,
+body.cinematicSkin #loginPage .manualLoginForm h1 {
+    margin: 0 0 1.5rem !important;
+    color: #f6f8fb;
+    font-size: 2.15rem;
+    font-weight: 720;
+    line-height: 1.1;
+    text-align: center;
+}
+
+body.cinematicSkin #loginPage #divUsers {
+    justify-content: center;
+    gap: 0.85rem;
+}
+
+body.cinematicSkin #loginPage .card {
+    border-radius: 18px;
+}
+
+body.cinematicSkin #loginPage .cardBox {
+    border-radius: 18px;
+    background: transparent;
+}
+
+body.cinematicSkin #loginPage .cardContent,
+body.cinematicSkin #loginPage .cardImage,
+body.cinematicSkin #loginPage .cardImageContainer,
+body.cinematicSkin #loginPage .cardScalable,
+body.cinematicSkin #loginPage .cardPadder {
+    border-radius: 18px;
+}
+
+body.cinematicSkin #loginPage .cardImage,
+body.cinematicSkin #loginPage .cardImageContainer {
+    background-color: rgba(21, 27, 35, 0.74);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+body.cinematicSkin #loginPage .cardFooter {
+    padding-top: 0.65rem;
+}
+
+body.cinematicSkin #loginPage .cardText {
+    color: rgba(241, 245, 249, 0.9);
+    font-weight: 640;
+}
+
+body.cinematicSkin #loginPage .readOnlyContent {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-top: 0.9rem !important;
+}
+
+body.cinematicSkin #loginPage .readOnlyContent .emby-button,
+body.cinematicSkin #loginPage .manualLoginForm .emby-button {
+    min-height: 2.75rem;
+    border: 1px solid rgba(214, 224, 236, 0.14);
+    background: rgba(22, 28, 36, 0.86);
+    color: #eef3f8;
+    box-shadow: none;
+}
+
+body.cinematicSkin #loginPage .readOnlyContent .emby-button {
+    flex: 1 1 13rem;
+}
+
+body.cinematicSkin #loginPage .manualLoginForm .button-submit,
+body.cinematicSkin #loginPage .btnManual {
+    border-color: rgba(103, 154, 201, 0.46);
+    background: #376f9a;
+    color: #fff;
+}
+
+body.cinematicSkin #loginPage .readOnlyContent .emby-button:hover,
+body.cinematicSkin #loginPage .manualLoginForm .emby-button:hover,
+body.cinematicSkin #loginPage .readOnlyContent .emby-button:focus,
+body.cinematicSkin #loginPage .manualLoginForm .emby-button:focus {
+    border-color: rgba(126, 179, 221, 0.5);
+    background: rgba(55, 111, 154, 0.58);
+}
+
+body.cinematicSkin #loginPage .inputContainer {
+    margin-bottom: 1rem;
+}
+
+body.cinematicSkin #loginPage .emby-input {
+    min-height: 3.15rem;
+    border-color: rgba(203, 213, 225, 0.2);
+    border-radius: 14px;
+    background: rgba(8, 12, 17, 0.86);
+}
+
+body.cinematicSkin #loginPage .emby-input:focus {
+    border-color: rgba(126, 179, 221, 0.7);
+    box-shadow: 0 0 0 3px rgba(55, 111, 154, 0.24);
+}
+
+body.cinematicSkin #loginPage .checkboxContainer {
+    margin: 0.2rem 0 1.1rem;
+    color: rgba(232, 239, 247, 0.82);
+}
+
+body.cinematicSkin #loginPage .loginDisclaimerContainer {
+    margin-top: 1rem;
+}
+
+body.cinematicSkin #loginPage .loginDisclaimer {
+    color: rgba(226, 235, 244, 0.68);
+    font-size: 0.92rem;
+}
+
+body.cinematicSkin .quickConnectLoginPrompt {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    min-width: min(18rem, calc(100vw - 5rem));
+    padding-top: 0.25rem;
+    text-align: center;
+}
+
+body.cinematicSkin .quickConnectLoginQr {
+    width: 12.25rem;
+    height: 12.25rem;
+    padding: 0.65rem;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3);
+}
+
+body.cinematicSkin .quickConnectLoginCode {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid rgba(203, 213, 225, 0.16);
+    border-radius: 999px;
+    background: rgba(10, 15, 22, 0.72);
+    color: #f8fafc;
+    font-size: 1.25rem;
+    font-weight: 720;
+}
+
+@media (max-width: 50em) {
+    body.cinematicSkin .skinHeader {
+        backdrop-filter: blur(14px) saturate(1.12);
+    }
+
+    body.cinematicSkin #loginPage .padded-bottom-page {
+        width: min(100%, calc(100vw - 1rem));
+        padding-top: 5vh;
+        padding-bottom: 5vh;
+    }
+
+    body.cinematicSkin #loginPage .visualLoginForm,
+    body.cinematicSkin #loginPage .manualLoginForm {
+        padding: 1.25rem;
+        border-radius: 18px;
+    }
+
+    body.cinematicSkin #loginPage .visualLoginForm h1,
+    body.cinematicSkin #loginPage .manualLoginForm h1 {
+        font-size: 1.55rem;
+    }
+}
