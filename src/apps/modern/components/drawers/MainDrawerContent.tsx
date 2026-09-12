@@ -1,7 +1,5 @@
 import Favorite from '@mui/icons-material/Favorite';
 import Home from '@mui/icons-material/Home';
-import AddCircle from '@mui/icons-material/AddCircle';
-import { CollectionType } from '@jellyfin/sdk/lib/generated-client/models/collection-type';
 import Divider from '@mui/material/Divider';
 import Icon from '@mui/material/Icon';
 import List from '@mui/material/List';
@@ -10,7 +8,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ListSubheader from '@mui/material/ListSubheader';
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import ListItemLink from 'components/ListItemLink';
@@ -19,8 +17,6 @@ import { useUserViews } from 'hooks/api/useUserViews';
 import { useApi } from 'hooks/useApi';
 import { useWebConfig } from 'hooks/useWebConfig';
 import globalize from 'lib/globalize';
-import { getRequestHref } from 'utils/requestUrl';
-import { openSeerrRequest } from 'utils/seerrSso';
 
 import LibraryIcon from '../LibraryIcon';
 import DrawerHeaderLink from './DrawerHeaderLink';
@@ -33,10 +29,6 @@ const MainDrawerContent = () => {
     const webConfig = useWebConfig();
 
     const isHomeSelected = location.pathname === '/home' && (!location.search || location.search === '?tab=0');
-    const onRequestLinkClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-        event.preventDefault();
-        void openSeerrRequest();
-    }, []);
 
     return (
         <>
@@ -102,41 +94,18 @@ const MainDrawerContent = () => {
                             </ListSubheader>
                         }
                     >
-                        {userViews.flatMap(view => {
-                            const items = [
-                                <ListItem key={view.Id} disablePadding>
-                                    <ListItemLink
-                                        to={appRouter.getRouteUrl(view, { context: view.CollectionType }).substring(1)}
-                                    >
-                                        <ListItemIcon>
-                                            <LibraryIcon item={view} />
-                                        </ListItemIcon>
-                                        <ListItemText primary={view.Name} />
-                                    </ListItemLink>
-                                </ListItem>
-                            ];
-
-                            if (view.CollectionType === CollectionType.Tvshows) {
-                                items.push(
-                                    <ListItem key={`${view.Id}_request`} disablePadding>
-                                        <ListItemButton
-                                            component='a'
-                                            href={getRequestHref()}
-                                            target='_blank'
-                                            rel='noopener noreferrer'
-                                            onClick={onRequestLinkClick}
-                                        >
-                                            <ListItemIcon>
-                                                <AddCircle />
-                                            </ListItemIcon>
-                                            <ListItemText primary='Request' />
-                                        </ListItemButton>
-                                    </ListItem>
-                                );
-                            }
-
-                            return items;
-                        })}
+                        {userViews.map(view => (
+                            <ListItem key={view.Id} disablePadding>
+                                <ListItemLink
+                                    to={appRouter.getRouteUrl(view, { context: view.CollectionType }).substring(1)}
+                                >
+                                    <ListItemIcon>
+                                        <LibraryIcon item={view} />
+                                    </ListItemIcon>
+                                    <ListItemText primary={view.Name} />
+                                </ListItemLink>
+                            </ListItem>
+                        ))}
                     </List>
                 </>
             )}

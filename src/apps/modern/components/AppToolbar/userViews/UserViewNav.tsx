@@ -20,8 +20,6 @@ import { useApi } from 'hooks/useApi';
 import useCurrentTab from 'hooks/useCurrentTab';
 import { useWebConfig } from 'hooks/useWebConfig';
 import globalize from 'lib/globalize';
-import { getRequestHref } from 'utils/requestUrl';
-import { openSeerrRequest } from 'utils/seerrSso';
 
 import UserViewsMenu from './UserViewsMenu';
 
@@ -33,12 +31,6 @@ const OVERFLOW_MENU_ID = 'user-view-overflow-menu';
 
 const HOME_PATH = '/home';
 const LIST_PATH = '/list';
-
-const REQUEST_NAV_ITEM = {
-    name: 'Request',
-    icon: 'add_circle',
-    url: getRequestHref()
-};
 
 const getCurrentUserView = (
     userViews: BaseItemDto[] | undefined,
@@ -87,9 +79,7 @@ const UserViewNav = () => {
 
     const navItems = useMemo(() => [
         ...(menuLinks || []),
-        ...((userViews?.Items || []).flatMap(item => (
-            item.CollectionType === CollectionType.Tvshows ? [item, REQUEST_NAV_ITEM] : [item]
-        )))
+        ...(userViews?.Items || [])
     ], [ menuLinks, userViews ]);
 
     const {
@@ -125,11 +115,6 @@ const UserViewNav = () => {
         setOverflowAnchorEl(null);
     }, []);
 
-    const onRequestNavItemClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-        event.preventDefault();
-        void openSeerrRequest(REQUEST_NAV_ITEM.url);
-    }, []);
-
     const currentUserView = useMemo(() => (
         getCurrentUserView(userViews?.Items, location.pathname, libraryId || ancestorLibraryId, collectionType, activeTab)
     ), [ activeTab, collectionType, libraryId, ancestorLibraryId, location.pathname, userViews ]);
@@ -160,7 +145,6 @@ const UserViewNav = () => {
                             href={navItem.url}
                             target='_blank'
                             rel='noopener noreferrer'
-                            onClick={navItem.url === REQUEST_NAV_ITEM.url ? onRequestNavItemClick : undefined}
                         >
                             {navItem.name}
                         </Button>

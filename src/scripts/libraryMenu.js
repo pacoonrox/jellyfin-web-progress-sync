@@ -24,8 +24,6 @@ import { getMenuLinks } from '../scripts/settings/webSettings';
 import Dashboard, { pageClassOn } from '../utils/dashboard';
 import Events from '../utils/events.ts';
 import { getParameterByName } from '../utils/url.ts';
-import { getRequestHref } from '../utils/requestUrl.ts';
-import { isSeerrMobileRequestContext, openSeerrRequest } from '../utils/seerrSso.ts';
 import datetime from '../scripts/datetime';
 
 import '../elements/emby-button/paper-icon-button-light';
@@ -391,18 +389,6 @@ function onSidebarLinkClick() {
     LibraryMenu.setTitle(text);
 }
 
-async function onRequestLinkClick(e) {
-    const requestUrl = this.href;
-
-    e.preventDefault();
-
-    if (isSeerrMobileRequestContext()) {
-        closeMainDrawer();
-    }
-
-    await openSeerrRequest(requestUrl);
-}
-
 function getUserViews(apiClient, userId) {
     const api = ServerConnections.getApi(apiClient.serverId());
 
@@ -487,19 +473,10 @@ function updateLibraryMenu(user) {
                 const icon = i.icon || imageHelper.getLibraryIcon(i.CollectionType);
                 const itemId = i.Id;
 
-                let itemHtml = `<a is="emby-linkbutton" data-itemid="${itemId}" class="lnkMediaFolder navMenuOption" href="${getItemHref(i, i.CollectionType)}">
+                return `<a is="emby-linkbutton" data-itemid="${itemId}" class="lnkMediaFolder navMenuOption" href="${getItemHref(i, i.CollectionType)}">
                                     <span class="material-icons navMenuOptionIcon ${icon}" aria-hidden="true"></span>
                                     <span class="sectionName navMenuOptionText">${escapeHtml(i.Name)}</span>
                                   </a>`;
-
-                if (i.CollectionType === 'tvshows') {
-                    itemHtml += `<a is="emby-linkbutton" data-itemid="request" class="lnkMediaFolder navMenuOption requestMenuOption" href="${getRequestHref()}" target="_blank" rel="noopener noreferrer">
-                                    <span class="material-icons navMenuOptionIcon add_circle" aria-hidden="true"></span>
-                                    <span class="sectionName navMenuOptionText">Request</span>
-                                  </a>`;
-                }
-
-                return itemHtml;
             }).join('');
             libraryMenuOptions.innerHTML = html;
             const elem = libraryMenuOptions;
@@ -508,12 +485,6 @@ function updateLibraryMenu(user) {
             for (const sidebarLink of sidebarLinks) {
                 sidebarLink.removeEventListener('click', onSidebarLinkClick);
                 sidebarLink.addEventListener('click', onSidebarLinkClick);
-            }
-
-            const requestLinks = elem.querySelectorAll('.requestMenuOption');
-            for (const requestLink of requestLinks) {
-                requestLink.removeEventListener('click', onRequestLinkClick);
-                requestLink.addEventListener('click', onRequestLinkClick);
             }
         });
     }

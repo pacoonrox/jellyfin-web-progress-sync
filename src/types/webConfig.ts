@@ -12,10 +12,8 @@ export interface MenuLink {
 }
 
 export interface CustomLinks {
-    localSeerrUrl?: string
     radarrUrl?: string
     sonarrUrl?: string
-    requestSubdomain?: string
 }
 
 export interface WebConfig {

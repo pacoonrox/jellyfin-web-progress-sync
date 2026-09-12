@@ -2,10 +2,8 @@
   "includeCorsCredentials": false,
   "multiserver": false,
   "customLinks": {
-    "localSeerrUrl": "http://192.168.1.237:5055",
     "radarrUrl": "http://192.168.1.237:7878",
-    "sonarrUrl": "http://192.168.1.237:8989",
-    "requestSubdomain": "request"
+    "sonarrUrl": "http://192.168.1.237:8989"
   },
   "themes": [
     {
