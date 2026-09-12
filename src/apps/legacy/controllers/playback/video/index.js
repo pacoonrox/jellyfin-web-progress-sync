@@ -34,22 +34,6 @@ import LibraryMenu from 'scripts/libraryMenu';
 import { setBackdropTransparency, TRANSPARENCY_LEVEL } from 'components/backdrop/backdrop';
 import { pluginManager } from 'components/pluginManager';
 
-const RESTORE_CINEMATIC_SKIN_CLASS = 'restoreCinematicSkinAfterPlayback';
-
-function suspendCinematicSkinForPlayback() {
-    if (document.body.classList.contains('cinematicSkin')) {
-        document.body.classList.add(RESTORE_CINEMATIC_SKIN_CLASS);
-        document.body.classList.remove('cinematicSkin');
-    }
-}
-
-function restoreCinematicSkinAfterPlayback() {
-    if (document.body.classList.contains(RESTORE_CINEMATIC_SKIN_CLASS)) {
-        document.body.classList.remove(RESTORE_CINEMATIC_SKIN_CLASS);
-        document.body.classList.add('cinematicSkin');
-    }
-}
-
 function getOpenedDialog() {
     return document.querySelector('.dialogContainer .dialog.opened');
 }
@@ -1676,7 +1660,6 @@ export default function (view) {
     nowPlayingDurationText.addEventListener('click', nowPlayingDurationTextClick);
 
     view.addEventListener('viewbeforeshow', function () {
-        suspendCinematicSkinForPlayback();
         headerElement.classList.add('osdHeader');
         setBackdropTransparency(TRANSPARENCY_LEVEL.Full);
     });
@@ -1767,7 +1750,6 @@ export default function (view) {
             dom.removeEventListener(document, 'click', onClickCapture, { capture: true });
         }
         stopOsdHideTimer();
-        restoreCinematicSkinAfterPlayback();
         headerElement.classList.remove('osdHeader');
         headerElement.classList.remove('osdHeader-hidden');
         /* eslint-disable-next-line compat/compat */
@@ -1789,7 +1771,6 @@ export default function (view) {
     });
     view.querySelector('.btnVideoOsdSettings').addEventListener('click', onSettingsButtonClick);
     view.addEventListener('viewhide', function () {
-        restoreCinematicSkinAfterPlayback();
         clearHideAnimationEventListeners(headerElement);
         headerElement.classList.remove('hide');
     });

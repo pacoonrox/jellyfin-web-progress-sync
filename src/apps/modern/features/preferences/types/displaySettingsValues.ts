@@ -3,7 +3,6 @@ export interface DisplaySettingsValues {
     dashboardTheme: string;
     dateTimeLocale: string;
     disableCustomCss: boolean;
-    enableCinematicSkin: boolean;
     displayMissingEpisodes: boolean;
     enableBlurHash: boolean;
     enableFasterAnimation: boolean;

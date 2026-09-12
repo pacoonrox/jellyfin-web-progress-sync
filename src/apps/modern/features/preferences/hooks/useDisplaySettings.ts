@@ -88,7 +88,6 @@ async function loadDisplaySettings({
         dashboardTheme: settings.dashboardTheme() || defaultTheme?.id || FALLBACK_THEME_ID,
         dateTimeLocale: settings.dateTimeLocale() || 'auto',
         disableCustomCss: Boolean(settings.disableCustomCss()),
-        enableCinematicSkin: Boolean(settings.enableCinematicSkin()),
         displayMissingEpisodes: user?.Configuration?.DisplayMissingEpisodes ?? false,
         enableBlurHash: Boolean(settings.enableBlurhash()),
         enableFasterAnimation: Boolean(settings.enableFastFadein()),
@@ -137,7 +136,6 @@ async function saveDisplaySettings({
     userSettings.dashboardTheme(newDisplaySettings.dashboardTheme);
     userSettings.dateTimeLocale(normalizeValue(newDisplaySettings.dateTimeLocale));
     userSettings.disableCustomCss(newDisplaySettings.disableCustomCss);
-    userSettings.enableCinematicSkin(newDisplaySettings.enableCinematicSkin);
     userSettings.enableBlurhash(newDisplaySettings.enableBlurHash);
     userSettings.enableFastFadein(newDisplaySettings.enableFasterAnimation);
     userSettings.detailsBanner(newDisplaySettings.enableItemDetailsBanner);

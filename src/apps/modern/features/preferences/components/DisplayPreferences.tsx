@@ -78,19 +78,6 @@ export function DisplayPreferences({ onChange, values }: Readonly<DisplayPrefere
 
             <FormControl fullWidth>
                 <FormControlLabel
-                    control={
-                        <Checkbox
-                            checked={values.enableCinematicSkin}
-                            onChange={onChange}
-                        />
-                    }
-                    label='Cinematic skin'
-                    name='enableCinematicSkin'
-                />
-            </FormControl>
-
-            <FormControl fullWidth>
-                <FormControlLabel
                     aria-describedby='display-settings-disable-css-description'
                     control={
                         <Checkbox

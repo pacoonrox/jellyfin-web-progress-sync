@@ -9,7 +9,6 @@ import { useApi } from './useApi';
 interface UserSettings {
     customCss?: string
     disableCustomCss: boolean
-    enableCinematicSkin: boolean
     theme?: string
     dashboardTheme?: string
     dateTimeLocale?: string
@@ -23,7 +22,6 @@ const UserSettingField = {
     // Custom CSS
     CustomCss: 'customCss',
     DisableCustomCss: 'disableCustomCss',
-    EnableCinematicSkin: 'enableCinematicSkin',
     // Theme settings
     Theme: 'appTheme',
     DashboardTheme: 'dashboardTheme',
@@ -38,7 +36,6 @@ const DEFAULT_LIBRARY_PAGE_SIZE = 100;
 
 const UserSettingsContext = createContext<UserSettings>({
     disableCustomCss: false,
-    enableCinematicSkin: false,
     libraryPageSize: DEFAULT_LIBRARY_PAGE_SIZE
 });
 
@@ -47,7 +44,6 @@ export const useUserSettings = () => useContext(UserSettingsContext);
 export const UserSettingsProvider: FC<PropsWithChildren<unknown>> = ({ children }) => {
     const [ customCss, setCustomCss ] = useState<string>();
     const [ disableCustomCss, setDisableCustomCss ] = useState(false);
-    const [ enableCinematicSkin, setEnableCinematicSkin ] = useState(false);
     const [ theme, setTheme ] = useState<string>();
     const [ dashboardTheme, setDashboardTheme ] = useState<string>();
     const [ dateTimeLocale, setDateTimeLocale ] = useState<string>();
@@ -59,7 +55,6 @@ export const UserSettingsProvider: FC<PropsWithChildren<unknown>> = ({ children 
     const context = useMemo<UserSettings>(() => ({
         customCss,
         disableCustomCss,
-        enableCinematicSkin,
         theme,
         dashboardTheme,
         dateTimeLocale,
@@ -68,7 +63,6 @@ export const UserSettingsProvider: FC<PropsWithChildren<unknown>> = ({ children 
     }), [
         customCss,
         disableCustomCss,
-        enableCinematicSkin,
         theme,
         dashboardTheme,
         dateTimeLocale,
@@ -80,7 +74,6 @@ export const UserSettingsProvider: FC<PropsWithChildren<unknown>> = ({ children 
     const updateUserSettings = useCallback(() => {
         setCustomCss(userSettings.customCss());
         setDisableCustomCss(userSettings.disableCustomCss());
-        setEnableCinematicSkin(userSettings.enableCinematicSkin());
         setTheme(userSettings.theme());
         setDashboardTheme(userSettings.dashboardTheme());
         setDateTimeLocale(userSettings.dateTimeLocale());
