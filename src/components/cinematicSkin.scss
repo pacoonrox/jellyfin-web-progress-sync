@@ -79,6 +79,9 @@ body.cinematicSkin .cardOverlayContainer,
 body.cinematicSkin .card * {
     transform: none !important;
     transform-origin: center center !important;
+    scale: none !important;
+    translate: none !important;
+    rotate: none !important;
     animation: none !important;
 }
 
@@ -110,15 +113,34 @@ body.cinematicSkin .card {
 }
 
 body.cinematicSkin .cardBox,
+body.cinematicSkin .card-hoverable:hover .cardBox,
+body.cinematicSkin .card-hoverable:focus-within .cardBox,
+body.cinematicSkin .card:focus .cardBox,
+body.cinematicSkin .card:focus-visible .cardBox,
+body.cinematicSkin .card.show-focus .cardBox,
+body.cinematicSkin .card.show-animation .cardBox,
 body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox {
     margin: 0.6em !important;
 }
 
 body.cinematicSkin .cardBox,
 body.cinematicSkin .cardScalable,
+body.cinematicSkin .card-hoverable:hover .cardBox,
+body.cinematicSkin .card-hoverable:hover .cardScalable,
+body.cinematicSkin .card-hoverable:focus-within .cardBox,
+body.cinematicSkin .card-hoverable:focus-within .cardScalable,
+body.cinematicSkin .card:focus .cardBox,
+body.cinematicSkin .card:focus .cardScalable,
+body.cinematicSkin .card:focus-visible .cardBox,
+body.cinematicSkin .card:focus-visible .cardScalable,
+body.cinematicSkin .card.show-focus .cardBox,
+body.cinematicSkin .card.show-focus .cardScalable,
+body.cinematicSkin .card.show-animation .cardBox,
+body.cinematicSkin .card.show-animation .cardScalable,
 body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox.visualCardBox,
 body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox:not(.visualCardBox) .cardScalable {
     border-width: 0 !important;
+    box-sizing: border-box;
 }
 
 body.cinematicSkin .itemsContainer .card,
@@ -169,6 +191,9 @@ body.cinematicSkin .card.show-animation:focus *,
 body.cinematicSkin .card.show-animation:focus-within *,
 body.cinematicSkin .card.show-animation:hover * {
     transform: none !important;
+    scale: none !important;
+    translate: none !important;
+    rotate: none !important;
 }
 
 body.cinematicSkin .padded-top-focusscale,
