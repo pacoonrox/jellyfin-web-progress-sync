@@ -64,6 +64,7 @@ body.cinematicSkin .cardImageContainer {
         0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
+/* stylelint-disable no-descending-specificity */
 body.cinematicSkin .card,
 body.cinematicSkin .cardBox,
 body.cinematicSkin .cardScalable,
@@ -74,10 +75,25 @@ body.cinematicSkin .cardImageContainer,
 body.cinematicSkin .coveredImage,
 body.cinematicSkin .blurhash-canvas,
 body.cinematicSkin .visualCardBox,
-body.cinematicSkin .cardOverlayContainer {
-    scale: 1 !important;
+body.cinematicSkin .cardOverlayContainer,
+body.cinematicSkin .card * {
     transform: none !important;
     transform-origin: center center !important;
+    animation: none !important;
+}
+
+body.cinematicSkin .cardImage,
+body.cinematicSkin .cardImageContainer,
+body.cinematicSkin .coveredImage,
+body.cinematicSkin .blurhash-canvas {
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+}
+
+body.cinematicSkin .cardImage,
+body.cinematicSkin .cardImageContainer.coveredImage,
+body.cinematicSkin .coveredImage {
+    background-size: cover !important;
 }
 
 body.cinematicSkin .visualCardBox,
@@ -93,17 +109,30 @@ body.cinematicSkin .card {
         box-shadow 180ms ease;
 }
 
+body.cinematicSkin .cardBox,
+body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox {
+    margin: 0.6em !important;
+}
+
+body.cinematicSkin .cardBox,
+body.cinematicSkin .cardScalable,
+body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox.visualCardBox,
+body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox:not(.visualCardBox) .cardScalable {
+    border-width: 0 !important;
+}
+
 body.cinematicSkin .itemsContainer .card,
 body.cinematicSkin .itemsContainer .cardBox,
 body.cinematicSkin .itemsContainer .cardScalable,
 body.cinematicSkin .itemsContainer .cardContent,
 body.cinematicSkin .itemsContainer .cardImageContainer,
-body.cinematicSkin .itemsContainer .coveredImage {
+body.cinematicSkin .itemsContainer .coveredImage,
+body.cinematicSkin .itemsContainer .card * {
     transition-property: opacity, filter, box-shadow !important;
 }
 
 body.cinematicSkin .card.show-animation .cardBox {
-    transition: none;
+    transition: none !important;
     will-change: auto;
 }
 
@@ -130,21 +159,22 @@ body.cinematicSkin .card-hoverable:focus-within .cardScalable,
 body.cinematicSkin .card:focus .cardScalable,
 body.cinematicSkin .card:focus-visible .cardScalable,
 body.cinematicSkin .card.show-focus .cardScalable,
-body.cinematicSkin .card.show-animation:focus .cardScalable {
+body.cinematicSkin .card.show-animation:focus .cardScalable,
+body.cinematicSkin .card-hoverable:hover *,
+body.cinematicSkin .card-hoverable:focus-within *,
+body.cinematicSkin .card:focus *,
+body.cinematicSkin .card:focus-visible *,
+body.cinematicSkin .card.show-focus *,
+body.cinematicSkin .card.show-animation:focus *,
+body.cinematicSkin .card.show-animation:focus-within *,
+body.cinematicSkin .card.show-animation:hover * {
     transform: none !important;
 }
 
-body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox {
-    margin: 0.6em !important;
-}
-
-body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox.visualCardBox,
-body.cinematicSkin .card.show-focus:not(.show-animation) .cardBox:not(.visualCardBox) .cardScalable {
-    border-width: 0 !important;
-}
-
 body.cinematicSkin .padded-top-focusscale,
-body.cinematicSkin .padded-bottom-focusscale {
+body.cinematicSkin .padded-bottom-focusscale,
+body.cinematicSkin.layout-tv .padded-top-focusscale,
+body.cinematicSkin.layout-tv .padded-bottom-focusscale {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     padding-top: 0 !important;
@@ -154,6 +184,7 @@ body.cinematicSkin .padded-bottom-focusscale {
 body.cinematicSkin .cardOverlayContainer > .cardOverlayFab-primary:hover {
     transform: none !important;
 }
+/* stylelint-enable no-descending-specificity */
 
 body.cinematicSkin .cardText,
 body.cinematicSkin .fieldDescription,
