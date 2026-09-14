@@ -90,7 +90,7 @@ function authenticateUserByName(page, apiClient, url, username, password, twoFac
             return;
         }
 
-        onLoginSuccessful(user.Id, result.AccessToken, apiClient, url, result.RequiresTwoFactorSetup);
+        onLoginSuccessful(user.Id, result.AccessToken, apiClient, url, result.RequiresTwoFactorSetup, result.ServerId);
     }, function (response) {
         page.querySelector('#txtManualPassword').value = '';
         page.querySelector('#txtTwoFactorCode').value = '';
@@ -142,7 +142,7 @@ function authenticateQuickConnect(apiClient, targetUrl) {
                 }
 
                 const result = await apiClient.quickConnect(data.Secret);
-                onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl);
+                onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl, false, result.ServerId);
             }, function (e) {
                 clearInterval(interval);
 
@@ -194,10 +194,16 @@ function startRequiredTwoFactorSetup(userId, apiClient) {
     });
 }
 
-function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup) {
+function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup, serverId) {
+    const resolvedServerId = serverId || apiClient.serverId();
+    if (!resolvedServerId) {
+        toast(globalize.translate('MessageUnableToConnectToServer'));
+        return;
+    }
+
     const authenticationResult = {
         AccessToken: accessToken,
-        ServerId: apiClient.serverId(),
+        ServerId: resolvedServerId,
         User: { Id: id }
     };
 
