@@ -195,37 +195,32 @@ function startRequiredTwoFactorSetup(userId, apiClient) {
 }
 
 function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup, serverId) {
-    const resolvedServerId = serverId || apiClient.serverId();
+    const serverInfo = apiClient.serverInfo() || {};
+    const resolvedServerId = serverId || serverInfo.Id || apiClient.serverId();
     if (!resolvedServerId) {
         toast(globalize.translate('MessageUnableToConnectToServer'));
         return;
     }
 
-    const authenticationResult = {
-        AccessToken: accessToken,
-        ServerId: resolvedServerId,
-        User: { Id: id }
-    };
+    // The raw login request bypasses ApiClient.authenticateUserByName. Install
+    // the token directly so connection discovery cannot discard the server id.
+    apiClient.setAuthenticationInfo(accessToken, id);
+    apiClient._sdk?.update({ accessToken });
+    Dashboard.onServerChanged(id, accessToken, apiClient);
 
-    // The raw login request bypasses ApiClient.authenticateUserByName, so invoke
-    // the normal callback to install the token in both legacy and SDK clients.
-    Promise.resolve(apiClient.onAuthenticated?.(apiClient, authenticationResult)).then(() => {
-        Dashboard.onServerChanged(id, accessToken, apiClient);
+    if (requiresTwoFactorSetup) {
+        loading.show();
+        startRequiredTwoFactorSetup(id, apiClient).then(() => {
+            loading.hide();
+            Dashboard.navigate(url || 'home');
+        }, () => {
+            loading.hide();
+            toast(globalize.translate('MessageTwoFactorSetupRequired'));
+        });
+        return;
+    }
 
-        if (requiresTwoFactorSetup) {
-            loading.show();
-            startRequiredTwoFactorSetup(id, apiClient).then(() => {
-                loading.hide();
-                Dashboard.navigate(url || 'home');
-            }, () => {
-                loading.hide();
-                toast(globalize.translate('MessageTwoFactorSetupRequired'));
-            });
-            return;
-        }
-
-        Dashboard.navigate(url || 'home');
-    });
+    Dashboard.navigate(url || 'home');
 }
 
 function showManualForm(context, showCancel, focusPassword) {
