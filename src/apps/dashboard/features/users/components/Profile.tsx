@@ -20,6 +20,7 @@ import { useUpdateUser } from 'apps/dashboard/features/users/api/useUpdateUser';
 import { useUpdateUserPolicy } from 'apps/dashboard/features/users/api/useUpdateUserPolicy';
 import { useNetworkConfig } from 'apps/dashboard/features/users/api/useNetworkConfig';
 import Toast from 'apps/dashboard/components/Toast';
+import { registerTwoFactor } from 'components/twoFactorSetup/twoFactorSetup';
 
 interface ProfileProps {
     userDto: UserDto;
@@ -51,6 +52,7 @@ const Profile = ({ userDto }: ProfileProps) => {
     const [ authenticationProviderId, setAuthenticationProviderId ] = useState('');
     const [ passwordResetProviderId, setPasswordResetProviderId ] = useState('');
     const [ twoFactorStatus, setTwoFactorStatus ] = useState<TwoFactorStatus>();
+    const [ isRegisteringTwoFactor, setIsRegisteringTwoFactor ] = useState(false);
 
     const { data: authProviders, isSuccess: isAuthProvidersSuccess } = useAuthProviders();
     const { data: passwordResetProviders, isSuccess: isPasswordResetProvidersSuccess } = usePasswordResetProviders();
@@ -259,6 +261,23 @@ const Profile = ({ userDto }: ProfileProps) => {
         }).catch(() => {
             // confirm dialog was closed
         });
+    }, [loadTwoFactorStatus, userDto.Id]);
+
+    const registerUserTwoFactor = useCallback(async () => {
+        if (!userDto.Id) {
+            return;
+        }
+
+        setIsRegisteringTwoFactor(true);
+        try {
+            await registerTwoFactor(window.ApiClient, userDto.Id);
+            toast(globalize.translate('MessageTwoFactorSetupComplete'));
+            loadTwoFactorStatus();
+        } catch (error) {
+            console.warn('[useredit] two-factor registration cancelled or failed', error);
+        } finally {
+            setIsRegisteringTwoFactor(false);
+        }
     }, [loadTwoFactorStatus, userDto.Id]);
 
     useEffect(() => {
@@ -614,6 +633,17 @@ const Profile = ({ userDto }: ProfileProps) => {
                             {globalize.translate('LabelTwoFactorFailedAttempts')}: {twoFactorStatus?.FailedAttemptCount ?? 0}
                         </div>
                     </div>
+                    {userDto.Id === window.ApiClient?.getCurrentUserId() && twoFactorStatus?.Policy !== 'Disabled' && !twoFactorStatus?.IsEnabled && (
+                        <Button
+                            type='button'
+                            className='raised button-submit block'
+                            disabled={isRegisteringTwoFactor}
+                            title={globalize.translate('HeaderTwoFactorSetup')}
+                            onClick={registerUserTwoFactor}
+                        >
+                            {globalize.translate('HeaderTwoFactorSetup')}
+                        </Button>
+                    )}
                     <Button
                         type='button'
                         className='raised button-cancel block'
