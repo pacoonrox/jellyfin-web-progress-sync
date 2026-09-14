@@ -2,7 +2,7 @@ const SESSION_AUTH_KEY = 'jellyfin-progress-sync-session-auth';
 
 export function getSessionAuthentication(serverId) {
     try {
-        const value = JSON.parse(window.sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
+        const value = JSON.parse(window.localStorage.getItem(SESSION_AUTH_KEY) || window.sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
 
         if (value?.ServerId === serverId && value.UserId && value.AccessToken) {
             return value;
@@ -16,7 +16,7 @@ export function getSessionAuthentication(serverId) {
 
 export function setSessionAuthentication(serverId, userId, accessToken) {
     try {
-        window.sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify({
+        window.localStorage.setItem(SESSION_AUTH_KEY, JSON.stringify({
             ServerId: serverId,
             UserId: userId,
             AccessToken: accessToken
@@ -28,6 +28,7 @@ export function setSessionAuthentication(serverId, userId, accessToken) {
 
 export function clearSessionAuthentication() {
     try {
+        window.localStorage.removeItem(SESSION_AUTH_KEY);
         window.sessionStorage.removeItem(SESSION_AUTH_KEY);
     } catch (error) {
         console.warn('[SessionAuthentication] unable to clear session authentication', error);
