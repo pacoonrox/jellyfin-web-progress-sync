@@ -5,6 +5,8 @@ import QRCode from 'qrcode';
 
 import { AppFeature } from 'constants/appFeature';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
+import Events from 'utils/events';
+import { setSessionAuthentication } from 'utils/sessionAuthentication';
 
 import { appHost } from 'components/apphost';
 import appSettings from 'scripts/settings/appSettings';
@@ -206,12 +208,14 @@ function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSet
     // the token directly so connection discovery cannot discard the server id.
     apiClient.setAuthenticationInfo(accessToken, id);
     apiClient._sdk?.update({ accessToken });
-    Dashboard.onServerChanged(id, accessToken, apiClient);
-
     if (requiresTwoFactorSetup) {
         loading.show();
         startRequiredTwoFactorSetup(id, apiClient).then(() => {
             loading.hide();
+            setSessionAuthentication(resolvedServerId, id, accessToken);
+            return ServerConnections.onLocalUserSignedIn({ Id: id, ServerId: resolvedServerId });
+        }).then(() => {
+            Events.trigger(ServerConnections, 'localusersignedin', [{ Id: id, ServerId: resolvedServerId }]);
             Dashboard.navigate(url || 'home');
         }, () => {
             loading.hide();
@@ -220,7 +224,13 @@ function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSet
         return;
     }
 
-    Dashboard.navigate(url || 'home');
+    setSessionAuthentication(resolvedServerId, id, accessToken);
+    ServerConnections.onLocalUserSignedIn({ Id: id, ServerId: resolvedServerId }).then(() => {
+        Events.trigger(ServerConnections, 'localusersignedin', [{ Id: id, ServerId: resolvedServerId }]);
+        Dashboard.navigate(url || 'home');
+    }, () => {
+        toast(globalize.translate('MessageUnableToConnectToServer'));
+    });
 }
 
 function showManualForm(context, showCancel, focusPassword) {

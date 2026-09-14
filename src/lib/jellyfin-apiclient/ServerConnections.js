@@ -7,6 +7,7 @@ import { detectBitrate } from 'utils/bitrateTest';
 import Dashboard from 'utils/dashboard';
 import Events from 'utils/events';
 import { createApiClient } from 'utils/jellyfin-apiclient/createApiClient';
+import { clearSessionAuthentication } from 'utils/sessionAuthentication';
 
 import ConnectionManager from './connectionManager';
 
@@ -39,6 +40,7 @@ class ServerConnections extends ConnectionManager {
         this.firstConnection = null;
 
         Events.on(this, 'localusersignedout', (_e, logoutInfo) => {
+            clearSessionAuthentication();
             setUserInfo(null, null);
             // Ensure the updated credentials are persisted to storage
             credentialProvider.credentials(credentialProvider.credentials());

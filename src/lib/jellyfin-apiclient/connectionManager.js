@@ -10,6 +10,7 @@ import { toApi } from 'utils/jellyfin-apiclient/compat';
 import { createApiClient } from 'utils/jellyfin-apiclient/createApiClient';
 import { equalsIgnoreCase } from 'utils/string';
 import { safeDecodeURIComponent } from 'utils/url';
+import { getSessionAuthentication } from 'utils/sessionAuthentication';
 
 import { ConnectionMode } from './connectionMode';
 import { ConnectionState } from './connectionState';
@@ -594,8 +595,18 @@ export default class ConnectionManager {
             };
 
             result.ApiClient = self._getOrAddApiClient(server, serverUrl);
-            const activeAccessToken = result.ApiClient.accessToken();
-            const activeUserId = result.ApiClient.getCurrentUserId();
+            let activeAccessToken = result.ApiClient.accessToken();
+            let activeUserId = result.ApiClient.getCurrentUserId();
+
+            if (!activeAccessToken || !activeUserId) {
+                const sessionAuthentication = getSessionAuthentication(server.Id);
+
+                if (sessionAuthentication) {
+                    activeAccessToken = sessionAuthentication.AccessToken;
+                    activeUserId = sessionAuthentication.UserId;
+                    result.ApiClient.setAuthenticationInfo(activeAccessToken, activeUserId);
+                }
+            }
 
             result.ApiClient.setSystemInfo(systemInfo);
             result.SystemInfo = systemInfo;
