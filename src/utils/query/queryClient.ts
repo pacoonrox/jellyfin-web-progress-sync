@@ -74,3 +74,9 @@ const createIDBPersister = (idbValidKey: IDBValidKey = 'query-cache') => ({
 } satisfies Persister);
 
 export const persister = createIDBPersister('jellyfin-query-cache');
+
+/** Clear in-memory and persisted queries when the authenticated user changes. */
+export async function clearQueryCache() {
+    queryClient.clear();
+    await persister.removeClient();
+}

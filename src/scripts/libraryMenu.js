@@ -79,7 +79,9 @@ function renderHeader() {
 
 function getCurrentApiClient() {
     if (currentUser?.localUser) {
-        return ServerConnections.getApiClient(currentUser.localUser.ServerId);
+        return currentUser.localUser.ServerId ?
+            ServerConnections.getApiClient(currentUser.localUser.ServerId) :
+            ServerConnections.currentApiClient();
     }
 
     return ServerConnections.currentApiClient();
@@ -638,17 +640,17 @@ function initHeadRoom(elem) {
 }
 
 function refreshLibraryDrawer(user) {
-    loadNavDrawer();
+    const drawerPromise = loadNavDrawer();
     currentDrawerType = 'library';
 
-    if (user) {
-        Promise.resolve(user);
-    } else {
-        ServerConnections.user(getCurrentApiClient()).then(function (userResult) {
-            refreshLibraryInfoInDrawer(userResult);
-            updateLibraryMenu(userResult.localUser);
-        });
-    }
+    const userPromise = user ?
+        Promise.resolve(user) :
+        ServerConnections.user(getCurrentApiClient());
+
+    Promise.all([drawerPromise, userPromise]).then(([, userResult]) => {
+        refreshLibraryInfoInDrawer(userResult);
+        updateLibraryMenu(userResult.localUser);
+    });
 }
 
 function getNavDrawerOptions() {
@@ -826,18 +828,26 @@ Events.on(ServerConnections, 'apiclientcreated', (e, newApiClient) => {
 });
 
 Events.on(ServerConnections, 'localusersignedin', function (e, user) {
-    const currentApiClient = ServerConnections.getApiClient(user.ServerId);
+    const currentApiClient = user.ServerId ?
+        ServerConnections.getApiClient(user.ServerId) :
+        ServerConnections.currentApiClient();
 
     currentDrawerType = null;
     currentUser = {
         localUser: user
     };
 
+    updateUserInHeader();
     loadNavDrawer();
 
     ServerConnections.user(currentApiClient).then(function (userResult) {
+        if (currentUser?.localUser?.Id !== user.Id) {
+            return;
+        }
+
         currentUser = userResult;
         updateUserInHeader(userResult);
+        refreshLibraryDrawer(userResult);
     });
 });
 

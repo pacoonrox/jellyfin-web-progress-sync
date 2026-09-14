@@ -16,7 +16,7 @@ import DirectoryBrowser from '../components/directorybrowser/directorybrowser';
 import dialogHelper from '../components/dialogHelper/dialogHelper';
 import itemIdentifier from '../components/itemidentifier/itemidentifier';
 import { getLocationSearch } from './url.ts';
-import { queryClient } from './query/queryClient';
+import { clearQueryCache } from './query/queryClient';
 
 export function getCurrentUser() {
     return window.ApiClient.getCurrentUser(false);
@@ -109,9 +109,9 @@ export function logout(options = {}) {
             console.warn('[dashboard] failed to clear saved server after logout', error);
         }) : Promise.resolve();
 
-        return clearSavedServerPromise.then(() => {
-            // Clear the query cache
-            queryClient.clear();
+        return clearSavedServerPromise.then(async () => {
+            // Clear in-memory and persisted queries
+            await clearQueryCache();
             // Reset cached views
             viewContainer.reset();
 
