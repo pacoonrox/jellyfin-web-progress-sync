@@ -101,18 +101,28 @@ export function onServerChanged(_userId, _accessToken, apiClient) {
     ServerConnections.setLocalApiClient(apiClient);
 }
 
-export function logout() {
-    ServerConnections.logout().then(function () {
-        // Clear the query cache
-        queryClient.clear();
-        // Reset cached views
-        viewContainer.reset();
+export function logout(options = {}) {
+    const serverId = options.clearSavedServer ? window.ApiClient?.serverInfo()?.Id : null;
 
-        if (appHost.supports(AppFeature.MultiServer)) {
-            selectServer();
-        } else {
-            navigate('login');
-        }
+    return ServerConnections.logout().then(function () {
+        const clearSavedServerPromise = serverId ? ServerConnections.deleteServer(serverId).catch(error => {
+            console.warn('[dashboard] failed to clear saved server after logout', error);
+        }) : Promise.resolve();
+
+        return clearSavedServerPromise.then(() => {
+            // Clear the query cache
+            queryClient.clear();
+            // Reset cached views
+            viewContainer.reset();
+
+            if (options.clearSavedServer) {
+                navigate('login');
+            } else if (appHost.supports(AppFeature.MultiServer)) {
+                selectServer();
+            } else {
+                navigate('login');
+            }
+        });
     });
 }
 

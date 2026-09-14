@@ -169,13 +169,8 @@ export default class ConnectionManager {
             }
             server.Id = result.ServerId;
 
-            if (saveCredentials) {
-                server.UserId = result.User.Id;
-                server.AccessToken = result.AccessToken;
-            } else {
-                server.UserId = null;
-                server.AccessToken = null;
-            }
+            server.UserId = null;
+            server.AccessToken = null;
 
             credentialProvider.addOrUpdateServer(credentials.Servers, server);
             credentialProvider.credentials(credentials);
@@ -581,15 +576,8 @@ export default class ConnectionManager {
         function onSuccessfulConnection(server, systemInfo, connectionMode, serverUrl, verifyLocalAuthentication, resolve, options = {}) {
             const credentials = credentialProvider.credentials();
 
-            if (options.enableAutoLogin === false) {
-                server.UserId = null;
-                server.AccessToken = null;
-            } else if (server.AccessToken && verifyLocalAuthentication) {
-                void validateAuthentication(server, serverUrl).then(function () {
-                    onSuccessfulConnection(server, systemInfo, connectionMode, serverUrl, false, resolve, options);
-                });
-                return;
-            }
+            server.UserId = null;
+            server.AccessToken = null;
 
             updateServerInfo(server, systemInfo);
 
@@ -610,7 +598,7 @@ export default class ConnectionManager {
             result.ApiClient.setSystemInfo(systemInfo);
             result.SystemInfo = systemInfo;
 
-            result.State = server.AccessToken && options.enableAutoLogin !== false ? ConnectionState.SignedIn : ConnectionState.ServerSignIn;
+            result.State = ConnectionState.ServerSignIn;
 
             result.Servers.push(server);
 
@@ -618,7 +606,7 @@ export default class ConnectionManager {
             result.ApiClient.enableAutomaticBitrateDetection = false;
 
             result.ApiClient.updateServerInfo(server, serverUrl);
-            result.ApiClient.setAuthenticationInfo(server.AccessToken, server.UserId);
+            result.ApiClient.setAuthenticationInfo(null, null);
 
             // Update SDK Api instance
             result.ApiClient._sdk?.update({

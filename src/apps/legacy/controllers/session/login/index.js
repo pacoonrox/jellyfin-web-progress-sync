@@ -20,6 +20,7 @@ import Dashboard from 'utils/dashboard';
 import toast from 'components/toast/toast';
 import dialogHelper from 'components/dialogHelper/dialogHelper';
 import baseAlert from 'components/alert';
+import prompt from 'components/prompt/prompt';
 import { getDefaultBackgroundClass } from 'components/cardbuilder/utils/builder';
 
 import './login.scss';
@@ -66,15 +67,33 @@ async function getQuickConnectDialogHtml(code) {
     `;
 }
 
-function authenticateUserByName(page, apiClient, url, username, password) {
+function authenticateUserByName(page, apiClient, url, username, password, twoFactorCode) {
     loading.show();
-    apiClient.authenticateUserByName(username, password).then(function (result) {
+    apiClient.ajax({
+        type: 'POST',
+        data: JSON.stringify({
+            Username: username,
+            Pw: password,
+            TwoFactorCode: twoFactorCode
+        }),
+        url: apiClient.getUrl('Users/AuthenticateByName'),
+        contentType: 'application/json'
+    }, true).then(response => response.json()).then(function (result) {
         const user = result.User;
         loading.hide();
 
-        onLoginSuccessful(user.Id, result.AccessToken, apiClient, url);
+        if (result.RequiresTwoFactorAuthentication) {
+            page.querySelector('.twoFactorCodeContainer').classList.remove('hide');
+            page.querySelector('#txtTwoFactorCode').value = '';
+            page.querySelector('#txtTwoFactorCode').focus();
+            toast(globalize.translate('MessageTwoFactorCodeRequired'));
+            return;
+        }
+
+        onLoginSuccessful(user.Id, result.AccessToken, apiClient, url, result.RequiresTwoFactorSetup);
     }, function (response) {
         page.querySelector('#txtManualPassword').value = '';
+        page.querySelector('#txtTwoFactorCode').value = '';
         loading.hide();
 
         const UnauthorizedOrForbidden = [401, 403];
@@ -154,16 +173,51 @@ function authenticateQuickConnect(apiClient, targetUrl) {
     });
 }
 
-function onLoginSuccessful(id, accessToken, apiClient, url) {
+function startRequiredTwoFactorSetup(userId, apiClient) {
+    return apiClient.ajax({
+        type: 'POST',
+        url: apiClient.getUrl(`Users/${userId}/TwoFactor/Start`)
+    }).then(response => response.json()).then(setup => {
+        return prompt({
+            title: globalize.translate('HeaderTwoFactorSetup'),
+            label: globalize.translate('LabelTwoFactorCode'),
+            description: globalize.translate('MessageTwoFactorSetupManualKey', setup.ManualEntryKey),
+            confirmText: globalize.translate('ButtonSubmit')
+        });
+    }).then(code => {
+        return apiClient.ajax({
+            type: 'POST',
+            data: JSON.stringify({ Code: code }),
+            url: apiClient.getUrl(`Users/${userId}/TwoFactor/Enable`),
+            contentType: 'application/json'
+        });
+    });
+}
+
+function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup) {
     Dashboard.onServerChanged(id, accessToken, apiClient);
+    if (requiresTwoFactorSetup) {
+        loading.show();
+        startRequiredTwoFactorSetup(id, apiClient).then(() => {
+            loading.hide();
+            Dashboard.navigate(url || 'home');
+        }, () => {
+            loading.hide();
+            toast(globalize.translate('MessageTwoFactorSetupRequired'));
+        });
+        return;
+    }
+
     Dashboard.navigate(url || 'home');
 }
 
 function showManualForm(context, showCancel, focusPassword) {
-    context.querySelector('.chkRememberLogin').checked = appSettings.enableAutoLogin();
+    appSettings.enableAutoLogin(false);
     context.querySelector('.manualLoginForm').classList.remove('hide');
     context.querySelector('.visualLoginForm').classList.add('hide');
     context.querySelector('.btnManual').classList.add('hide');
+    context.querySelector('.twoFactorCodeContainer').classList.add('hide');
+    context.querySelector('#txtTwoFactorCode').value = '';
 
     if (focusPassword) {
         context.querySelector('#txtManualPassword').focus();
@@ -283,8 +337,14 @@ export default function (view, params) {
         }
     });
     view.querySelector('.manualLoginForm').addEventListener('submit', function (e) {
-        appSettings.enableAutoLogin(view.querySelector('.chkRememberLogin').checked);
-        authenticateUserByName(view, getApiClient(), getTargetUrl(), view.querySelector('#txtManualName').value, view.querySelector('#txtManualPassword').value);
+        appSettings.enableAutoLogin(false);
+        authenticateUserByName(
+            view,
+            getApiClient(),
+            getTargetUrl(),
+            view.querySelector('#txtManualName').value,
+            view.querySelector('#txtManualPassword').value,
+            view.querySelector('#txtTwoFactorCode').value);
         e.preventDefault();
         return false;
     });

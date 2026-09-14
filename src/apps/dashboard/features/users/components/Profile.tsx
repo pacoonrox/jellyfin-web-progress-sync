@@ -10,6 +10,8 @@ import LinkButton from 'elements/emby-button/LinkButton';
 import Input from 'elements/emby-input/Input';
 import loading from 'components/loading/loading';
 import SelectElement from 'elements/SelectElement';
+import confirm from 'components/confirm/confirm';
+import toast from 'components/toast/toast';
 import { useAuthProviders } from 'apps/dashboard/features/users/api/useAuthProviders';
 import { usePasswordResetProviders } from 'apps/dashboard/features/users/api/usePasswordResetProviders';
 import { useLibraryMediaFolders } from 'apps/dashboard/features/users/api/useLibraryMediaFolders';
@@ -27,6 +29,15 @@ type ResetProvider = BaseItemDto & {
     checkedAttribute: string
 };
 
+type TwoFactorAuthenticationPolicy = 'Disabled' | 'Allowed' | 'Required';
+
+type TwoFactorStatus = {
+    Policy: TwoFactorAuthenticationPolicy;
+    IsEnabled: boolean;
+    RegisteredDate?: string;
+    FailedAttemptCount: number;
+};
+
 const getCheckedElementDataIds = (elements: NodeListOf<Element>) => (
     Array.prototype.filter.call(elements, e => e.checked)
         .map(e => e.getAttribute('data-id'))
@@ -39,6 +50,7 @@ const Profile = ({ userDto }: ProfileProps) => {
 
     const [ authenticationProviderId, setAuthenticationProviderId ] = useState('');
     const [ passwordResetProviderId, setPasswordResetProviderId ] = useState('');
+    const [ twoFactorStatus, setTwoFactorStatus ] = useState<TwoFactorStatus>();
 
     const { data: authProviders, isSuccess: isAuthProvidersSuccess } = useAuthProviders();
     const { data: passwordResetProviders, isSuccess: isPasswordResetProvidersSuccess } = usePasswordResetProviders();
@@ -56,6 +68,20 @@ const Profile = ({ userDto }: ProfileProps) => {
     const updateUserPolicy = useUpdateUserPolicy();
 
     const element = useRef<HTMLDivElement>(null);
+
+    const loadTwoFactorStatus = useCallback(() => {
+        if (!userDto.Id) {
+            return Promise.resolve();
+        }
+
+        return window.ApiClient.getJSON(window.ApiClient.getUrl(`Users/${userDto.Id}/TwoFactor`))
+            .then((status: TwoFactorStatus) => {
+                setTwoFactorStatus(status);
+            })
+            .catch((err: unknown) => {
+                console.warn('[useredit] failed to load two-factor authentication status', err);
+            });
+    }, [userDto.Id]);
 
     const triggerChange = (select: HTMLInputElement) => {
         const evt = new Event('change', { bubbles: false, cancelable: true });
@@ -200,13 +226,40 @@ const Profile = ({ userDto }: ProfileProps) => {
             (userDto.Policy?.RemoteClientBitrateLimit / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '';
         (page.querySelector('#txtLoginAttemptsBeforeLockout') as HTMLInputElement).value = String(userDto.Policy?.LoginAttemptsBeforeLockout) || '-1';
         (page.querySelector('#txtMaxActiveSessions') as HTMLInputElement).value = String(userDto.Policy?.MaxActiveSessions) || '0';
+        (page.querySelector('#txtInactiveLogoutMinutes') as HTMLInputElement).value = String(userDto.Policy?.InactiveLogoutMinutes || 0);
         (page.querySelector('#selectSyncPlayAccess') as HTMLSelectElement).value = String(userDto.Policy?.SyncPlayAccess);
+        (page.querySelector('#selectTwoFactorAuthenticationPolicy') as HTMLSelectElement).value = userDto.Policy?.TwoFactorAuthenticationPolicy || 'Disabled';
         loading.hide();
     }, [ userDto, libraryMenu ]);
 
     useEffect(() => {
         loadUser();
-    }, [ loadUser ]);
+        loadTwoFactorStatus();
+    }, [ loadUser, loadTwoFactorStatus ]);
+
+    const resetTwoFactor = useCallback(() => {
+        if (!userDto.Id) {
+            return;
+        }
+
+        confirm(globalize.translate('ConfirmResetTwoFactor'), globalize.translate('HeaderResetTwoFactor')).then(() => {
+            loading.show();
+            window.ApiClient.ajax({
+                type: 'DELETE',
+                url: window.ApiClient.getUrl(`Users/${userDto.Id}/TwoFactor`)
+            }).then(() => {
+                loading.hide();
+                toast(globalize.translate('MessageTwoFactorResetComplete'));
+                loadTwoFactorStatus();
+            }).catch((err: unknown) => {
+                loading.hide();
+                console.error('[useredit] failed to reset two-factor authentication', err);
+                setIsErrorToastOpen(true);
+            });
+        }).catch(() => {
+            // confirm dialog was closed
+        });
+    }, [loadTwoFactorStatus, userDto.Id]);
 
     useEffect(() => {
         const page = element.current;
@@ -241,11 +294,13 @@ const Profile = ({ userDto }: ProfileProps) => {
             user.Policy.RemoteClientBitrateLimit = Math.floor(1e6 * parseFloat((page.querySelector('#txtRemoteClientBitrateLimit') as HTMLInputElement).value || '0'));
             user.Policy.LoginAttemptsBeforeLockout = parseInt((page.querySelector('#txtLoginAttemptsBeforeLockout') as HTMLInputElement).value || '0', 10);
             user.Policy.MaxActiveSessions = parseInt((page.querySelector('#txtMaxActiveSessions') as HTMLInputElement).value || '0', 10);
+            user.Policy.InactiveLogoutMinutes = parseInt((page.querySelector('#txtInactiveLogoutMinutes') as HTMLInputElement).value || '0', 10);
             user.Policy.AuthenticationProviderId = (page.querySelector('#selectLoginProvider') as HTMLSelectElement).value;
             user.Policy.PasswordResetProviderId = (page.querySelector('#selectPasswordResetProvider') as HTMLSelectElement).value;
             user.Policy.EnableContentDeletion = (page.querySelector('.chkEnableDeleteAllFolders') as HTMLInputElement).checked;
             user.Policy.EnableContentDeletionFromFolders = user.Policy.EnableContentDeletion ? [] : getCheckedElementDataIds(page.querySelectorAll('.chkFolder'));
             user.Policy.SyncPlayAccess = (page.querySelector('#selectSyncPlayAccess') as HTMLSelectElement).value as SyncPlayUserAccessType;
+            user.Policy.TwoFactorAuthenticationPolicy = (page.querySelector('#selectTwoFactorAuthenticationPolicy') as HTMLSelectElement).value as TwoFactorAuthenticationPolicy;
 
             updateUser.mutate({ userId: user.Id, userDto: user }, {
                 onSuccess: () => {
@@ -314,6 +369,18 @@ const Profile = ({ userDto }: ProfileProps) => {
         content += `<option value='None'>${globalize.translate('LabelSyncPlayAccessNone')}</option>`;
         return content;
     };
+
+    const optionTwoFactorAuthenticationPolicy = () => {
+        let content = '';
+        content += `<option value='Disabled'>${globalize.translate('LabelTwoFactorPolicyDisabled')}</option>`;
+        content += `<option value='Allowed'>${globalize.translate('LabelTwoFactorPolicyAllowed')}</option>`;
+        content += `<option value='Required'>${globalize.translate('LabelTwoFactorPolicyRequired')}</option>`;
+        return content;
+    };
+
+    const twoFactorRegisteredDate = twoFactorStatus?.RegisteredDate ?
+        new Date(twoFactorStatus.RegisteredDate).toLocaleString() :
+        globalize.translate('LabelTwoFactorNotRegistered');
 
     return (
         <div ref={element}>
@@ -521,6 +588,40 @@ const Profile = ({ userDto }: ProfileProps) => {
                 <h2 className='checkboxListLabel'>
                     {globalize.translate('Other')}
                 </h2>
+                <div className='verticalSection'>
+                    <h2 className='checkboxListLabel'>
+                        {globalize.translate('HeaderTwoFactorAuthentication')}
+                    </h2>
+                    <div className='selectContainer'>
+                        <SelectElement
+                            id='selectTwoFactorAuthenticationPolicy'
+                            label='LabelTwoFactorPolicy'
+                        >
+                            {optionTwoFactorAuthenticationPolicy()}
+                        </SelectElement>
+                        <div className='fieldDescription'>
+                            {globalize.translate('LabelTwoFactorPolicyHelp')}
+                        </div>
+                    </div>
+                    <div className='paperList' style={{ padding: '.75em 1em', marginBottom: '1em' }}>
+                        <div>
+                            {globalize.translate('LabelTwoFactorStatus')}: {twoFactorStatus?.IsEnabled ? globalize.translate('LabelTwoFactorEnabled') : globalize.translate('LabelTwoFactorNotRegistered')}
+                        </div>
+                        <div>
+                            {globalize.translate('LabelTwoFactorRegistered')}: {twoFactorRegisteredDate}
+                        </div>
+                        <div>
+                            {globalize.translate('LabelTwoFactorFailedAttempts')}: {twoFactorStatus?.FailedAttemptCount ?? 0}
+                        </div>
+                    </div>
+                    <Button
+                        type='button'
+                        className='raised button-cancel block'
+                        title={globalize.translate('HeaderResetTwoFactor')}
+                        disabled={!twoFactorStatus?.IsEnabled}
+                        onClick={resetTwoFactor}
+                    />
+                </div>
                 <div className='checkboxContainer checkboxContainer-withDescription'>
                     <CheckBoxElement
                         className='chkEnableDownloading'
@@ -579,6 +680,21 @@ const Profile = ({ userDto }: ProfileProps) => {
                         </div>
                         <div className='fieldDescription'>
                             {globalize.translate('OptionMaxActiveSessionsHelp')}
+                        </div>
+                    </div>
+                </div>
+                <br />
+                <div className='verticalSection'>
+                    <div className='inputContainer' id='fldInactiveLogoutMinutes'>
+                        <Input
+                            type='number'
+                            id='txtInactiveLogoutMinutes'
+                            label={globalize.translate('LabelInactiveLogoutMinutes')}
+                            min={0}
+                            step={1}
+                        />
+                        <div className='fieldDescription'>
+                            {globalize.translate('LabelInactiveLogoutMinutesHelp')}
                         </div>
                     </div>
                 </div>

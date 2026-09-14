@@ -17,6 +17,7 @@ import globalize from './lib/globalize';
 import { loadCoreDictionary } from 'lib/globalize/loader';
 import getServerAddress from 'lib/jellyfin-apiclient/utils/getServerAddress';
 import { initialize as initializeAutoCast } from 'scripts/autocast';
+import { initializeInactivityLogout } from 'scripts/inactivityLogout';
 import browser from './scripts/browser';
 import keyboardNavigation from './scripts/keyboardNavigation';
 import { getPlugins } from './scripts/settings/webSettings';
@@ -83,6 +84,7 @@ build: ${__JF_BUILD_VERSION__}`);
 
     // Initialize automatic (default) cast target
     initializeAutoCast();
+    initializeInactivityLogout();
 
     // Load the translation dictionary
     await loadCoreDictionary();

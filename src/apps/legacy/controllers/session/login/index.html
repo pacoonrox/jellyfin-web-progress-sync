@@ -12,10 +12,9 @@
                 <input is="emby-input" id="txtManualPassword" type="password" label="${LabelPassword}" autocomplete="current-password" />
             </div>
 
-            <label class="checkboxContainer">
-                <input is="emby-checkbox" type="checkbox" class="chkRememberLogin" checked />
-                <span>${RememberMe}</span>
-            </label>
+            <div class="inputContainer twoFactorCodeContainer hide">
+                <input is="emby-input" id="txtTwoFactorCode" type="text" label="${LabelTwoFactorCode}" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" />
+            </div>
 
             <button is="emby-button" type="submit" class="raised button-submit block">
                 <span>${ButtonSignIn}</span>
