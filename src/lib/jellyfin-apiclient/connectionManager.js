@@ -594,11 +594,15 @@ export default class ConnectionManager {
             };
 
             result.ApiClient = self._getOrAddApiClient(server, serverUrl);
+            const activeAccessToken = result.ApiClient.accessToken();
+            const activeUserId = result.ApiClient.getCurrentUserId();
 
             result.ApiClient.setSystemInfo(systemInfo);
             result.SystemInfo = systemInfo;
 
-            result.State = ConnectionState.ServerSignIn;
+            result.State = activeAccessToken && activeUserId
+                ? ConnectionState.SignedIn
+                : ConnectionState.ServerSignIn;
 
             result.Servers.push(server);
 
@@ -606,7 +610,7 @@ export default class ConnectionManager {
             result.ApiClient.enableAutomaticBitrateDetection = false;
 
             result.ApiClient.updateServerInfo(server, serverUrl);
-            result.ApiClient.setAuthenticationInfo(null, null);
+            result.ApiClient.setAuthenticationInfo(activeAccessToken, activeUserId);
 
             // Update SDK Api instance
             result.ApiClient._sdk?.update({
