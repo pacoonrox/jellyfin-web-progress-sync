@@ -1,6 +1,6 @@
 import type { UserDto } from '@jellyfin/sdk/lib/generated-client';
 import { ImageType } from '@jellyfin/sdk/lib/generated-client/models/image-type';
-import React, { FunctionComponent, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { FunctionComponent, useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import Dashboard from '../../../../utils/dashboard';
@@ -15,14 +15,49 @@ import UserPasswordForm from 'components/dashboard/users/UserPasswordForm';
 import Page from 'components/Page';
 import Loading from 'components/loading/LoadingComponent';
 import Button from 'elements/emby-button/Button';
+import { registerTwoFactor } from 'components/twoFactorSetup/twoFactorSetup';
+
+type TwoFactorStatus = {
+    Policy?: 'Disabled' | 'Allowed' | 'Required';
+    IsEnabled?: boolean;
+};
 
 const UserProfile: FunctionComponent = () => {
     const [ searchParams ] = useSearchParams();
     const userId = searchParams.get('userId') || undefined;
     const { data: user, isPending: isUserPending } = useUser({ userId });
+    const [ twoFactorStatus, setTwoFactorStatus ] = useState<TwoFactorStatus>();
+    const [ isRegisteringTwoFactor, setIsRegisteringTwoFactor ] = useState(false);
     const libraryMenu = useMemo(async () => ((await import('../../../../scripts/libraryMenu')).default), []);
 
     const element = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!user?.Id || user.Id !== window.ApiClient?.getCurrentUserId()) {
+            return;
+        }
+
+        window.ApiClient.getJSON(window.ApiClient.getUrl(`Users/${user.Id}/TwoFactor`))
+            .then((status: TwoFactorStatus) => setTwoFactorStatus(status))
+            .catch(error => console.warn('[userprofile] failed to load two-factor status', error));
+    }, [user?.Id]);
+
+    const registerUserTwoFactor = useCallback(async () => {
+        if (!user?.Id) {
+            return;
+        }
+
+        setIsRegisteringTwoFactor(true);
+        try {
+            await registerTwoFactor(window.ApiClient, user.Id);
+            toast(globalize.translate('MessageTwoFactorSetupComplete'));
+            setTwoFactorStatus(status => ({ ...status, IsEnabled: true }));
+        } catch (error) {
+            console.warn('[userprofile] two-factor registration cancelled or failed', error);
+        } finally {
+            setIsRegisteringTwoFactor(false);
+        }
+    }, [user?.Id]);
 
     const reloadUser = useCallback(() => {
         const page = element.current;
@@ -223,6 +258,25 @@ const UserProfile: FunctionComponent = () => {
                 <UserPasswordForm
                     user={user}
                 />
+                {twoFactorStatus?.Policy !== 'Disabled' && !twoFactorStatus?.IsEnabled && (
+                    <div className='verticalSection' style={{ marginTop: '1.5em' }}>
+                        <h2 className='sectionTitle'>
+                            {globalize.translate('HeaderTwoFactorAuthentication')}
+                        </h2>
+                        <div className='fieldDescription'>
+                            {globalize.translate('LabelTwoFactorPolicyHelp')}
+                        </div>
+                        <Button
+                            type='button'
+                            className='raised button-submit block'
+                            disabled={isRegisteringTwoFactor}
+                            title={globalize.translate('HeaderTwoFactorSetup')}
+                            onClick={registerUserTwoFactor}
+                        >
+                            {globalize.translate('HeaderTwoFactorSetup')}
+                        </Button>
+                    </div>
+                )}
             </div>
         </Page>
 
