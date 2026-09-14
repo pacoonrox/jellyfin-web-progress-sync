@@ -195,20 +195,31 @@ function startRequiredTwoFactorSetup(userId, apiClient) {
 }
 
 function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup) {
-    Dashboard.onServerChanged(id, accessToken, apiClient);
-    if (requiresTwoFactorSetup) {
-        loading.show();
-        startRequiredTwoFactorSetup(id, apiClient).then(() => {
-            loading.hide();
-            Dashboard.navigate(url || 'home');
-        }, () => {
-            loading.hide();
-            toast(globalize.translate('MessageTwoFactorSetupRequired'));
-        });
-        return;
-    }
+    const authenticationResult = {
+        AccessToken: accessToken,
+        ServerId: apiClient.serverId(),
+        User: { Id: id }
+    };
 
-    Dashboard.navigate(url || 'home');
+    // The raw login request bypasses ApiClient.authenticateUserByName, so invoke
+    // the normal callback to install the token in both legacy and SDK clients.
+    Promise.resolve(apiClient.onAuthenticated?.(apiClient, authenticationResult)).then(() => {
+        Dashboard.onServerChanged(id, accessToken, apiClient);
+
+        if (requiresTwoFactorSetup) {
+            loading.show();
+            startRequiredTwoFactorSetup(id, apiClient).then(() => {
+                loading.hide();
+                Dashboard.navigate(url || 'home');
+            }, () => {
+                loading.hide();
+                toast(globalize.translate('MessageTwoFactorSetupRequired'));
+            });
+            return;
+        }
+
+        Dashboard.navigate(url || 'home');
+    });
 }
 
 function showManualForm(context, showCancel, focusPassword) {
