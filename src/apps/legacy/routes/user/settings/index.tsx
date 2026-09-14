@@ -8,6 +8,7 @@ import Loading from 'components/loading/LoadingComponent';
 import Page from 'components/Page';
 import { AppFeature } from 'constants/appFeature';
 import LinkButton from 'elements/emby-button/LinkButton';
+import Button from 'elements/emby-button/Button';
 import { useApi } from 'hooks/useApi';
 import { useQuickConnectEnabled } from 'hooks/useQuickConnect';
 import { useUsers } from 'hooks/useUsers';
@@ -16,6 +17,8 @@ import browser from 'scripts/browser';
 import Dashboard from 'utils/dashboard';
 import shell from 'scripts/shell';
 import keyboardNavigation from 'scripts/keyboardNavigation';
+import { registerTwoFactor } from 'components/twoFactorSetup/twoFactorSetup';
+import toast from 'components/toast/toast';
 
 const UserSettingsPage: FC = () => {
     const { user: currentUser } = useApi();
@@ -26,6 +29,8 @@ const UserSettingsPage: FC = () => {
     } = useQuickConnectEnabled();
     const { data: users } = useUsers();
     const [ user, setUser ] = useState<UserDto>();
+    const [ twoFactorStatus, setTwoFactorStatus ] = useState<{ Policy?: string; IsEnabled?: boolean }>();
+    const [ isRegisteringTwoFactor, setIsRegisteringTwoFactor ] = useState(false);
 
     const userId = useMemo(() => (
         searchParams.get('userId') || currentUser?.Id
@@ -40,6 +45,29 @@ const UserSettingsPage: FC = () => {
             else setUser(users?.find(({ Id }) => userId === Id));
         }
     }, [ currentUser, userId, users ]);
+
+    useEffect(() => {
+        if (!isLoggedInUser || !userId) return;
+
+        window.ApiClient.getJSON(window.ApiClient.getUrl(`Users/${userId}/TwoFactor`))
+            .then(setTwoFactorStatus)
+            .catch(error => console.warn('[user-settings] failed to load two-factor status', error));
+    }, [isLoggedInUser, userId]);
+
+    const registerUserTwoFactor = async () => {
+        if (!userId) return;
+
+        setIsRegisteringTwoFactor(true);
+        try {
+            await registerTwoFactor(window.ApiClient, userId);
+            toast(globalize.translate('MessageTwoFactorSetupComplete'));
+            setTwoFactorStatus(status => ({ ...status, IsEnabled: true }));
+        } catch (error) {
+            console.warn('[user-settings] two-factor registration cancelled or failed', error);
+        } finally {
+            setIsRegisteringTwoFactor(false);
+        }
+    };
 
     if (!userId || !user || isQuickConnectEnabledPending) {
         return (
@@ -92,6 +120,24 @@ const UserSettingsPage: FC = () => {
                                 </div>
                             </div>
                         </LinkButton>
+
+                        {isLoggedInUser && twoFactorStatus?.Policy !== 'Disabled' && !twoFactorStatus?.IsEnabled && (
+                            <Button
+                                type='button'
+                                className='listItem-border block'
+                                disabled={isRegisteringTwoFactor}
+                                onClick={registerUserTwoFactor}
+                            >
+                                <div className='listItem'>
+                                    <span className='material-icons listItemIcon listItemIcon-transparent security' aria-hidden='true' />
+                                    <div className='listItemBody'>
+                                        <div className='listItemBodyText'>
+                                            {globalize.translate('HeaderTwoFactorSetup')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </Button>
+                        )}
 
                         {isQuickConnectEnabled && (
                             <LinkButton

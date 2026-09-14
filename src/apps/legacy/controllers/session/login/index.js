@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 
 import { AppFeature } from 'constants/appFeature';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
+import { registerTwoFactor } from 'components/twoFactorSetup/twoFactorSetup';
 import Events from 'utils/events';
 import { setSessionAuthentication } from 'utils/sessionAuthentication';
 
@@ -22,7 +23,6 @@ import Dashboard from 'utils/dashboard';
 import toast from 'components/toast/toast';
 import dialogHelper from 'components/dialogHelper/dialogHelper';
 import baseAlert from 'components/alert';
-import prompt from 'components/prompt/prompt';
 import { getDefaultBackgroundClass } from 'components/cardbuilder/utils/builder';
 
 import './login.scss';
@@ -176,24 +176,7 @@ function authenticateQuickConnect(apiClient, targetUrl) {
 }
 
 function startRequiredTwoFactorSetup(userId, apiClient) {
-    return apiClient.ajax({
-        type: 'POST',
-        url: apiClient.getUrl(`Users/${userId}/TwoFactor/Start`)
-    }).then(response => response.json()).then(setup => {
-        return prompt({
-            title: globalize.translate('HeaderTwoFactorSetup'),
-            label: globalize.translate('LabelTwoFactorCode'),
-            description: globalize.translate('MessageTwoFactorSetupManualKey', setup.ManualEntryKey),
-            confirmText: globalize.translate('ButtonSubmit')
-        });
-    }).then(code => {
-        return apiClient.ajax({
-            type: 'POST',
-            data: JSON.stringify({ Code: code }),
-            url: apiClient.getUrl(`Users/${userId}/TwoFactor/Enable`),
-            contentType: 'application/json'
-        });
-    });
+    return registerTwoFactor(apiClient, userId);
 }
 
 function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup, serverId) {
