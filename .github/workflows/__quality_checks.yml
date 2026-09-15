@@ -21,6 +21,10 @@ jobs:
 
       - name: Scan
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        # Dependency Review is unavailable for repositories without GitHub's
+        # dependency graph (including personal forks). Keep the other checks
+        # useful while allowing them to run in that environment.
+        continue-on-error: true
         with:
           ## Workaround from https://github.com/actions/dependency-review-action/issues/456
           ## TODO: Remove when necessary

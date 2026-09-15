@@ -1,5 +1,5 @@
 import type { UserDto } from '@jellyfin/sdk/lib/generated-client/models/user-dto';
-import React, { useEffect, useMemo, useState, type FC } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, type FC } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { appHost } from 'components/apphost';
@@ -54,8 +54,10 @@ const UserSettingsPage: FC = () => {
             .catch(error => console.warn('[user-settings] failed to load two-factor status', error));
     }, [isLoggedInUser, userId]);
 
-    const registerUserTwoFactor = async () => {
-        if (!userId) return;
+    const registerUserTwoFactor = useCallback(async () => {
+        if (!userId) {
+            return;
+        }
 
         setIsRegisteringTwoFactor(true);
         try {
@@ -67,7 +69,7 @@ const UserSettingsPage: FC = () => {
         } finally {
             setIsRegisteringTwoFactor(false);
         }
-    };
+    }, [userId]);
 
     if (!userId || !user || isQuickConnectEnabledPending) {
         return (

@@ -236,7 +236,7 @@ const Profile = ({ userDto }: ProfileProps) => {
 
     useEffect(() => {
         loadUser();
-        loadTwoFactorStatus();
+        void loadTwoFactorStatus();
     }, [ loadUser, loadTwoFactorStatus ]);
 
     const resetTwoFactor = useCallback(() => {
@@ -252,7 +252,7 @@ const Profile = ({ userDto }: ProfileProps) => {
             }).then(() => {
                 loading.hide();
                 toast(globalize.translate('MessageTwoFactorResetComplete'));
-                loadTwoFactorStatus();
+                void loadTwoFactorStatus();
             }).catch((err: unknown) => {
                 loading.hide();
                 console.error('[useredit] failed to reset two-factor authentication', err);
@@ -272,7 +272,7 @@ const Profile = ({ userDto }: ProfileProps) => {
         try {
             await registerTwoFactor(window.ApiClient, userDto.Id);
             toast(globalize.translate('MessageTwoFactorSetupComplete'));
-            loadTwoFactorStatus();
+            void loadTwoFactorStatus();
         } catch (error) {
             console.warn('[useredit] two-factor registration cancelled or failed', error);
         } finally {

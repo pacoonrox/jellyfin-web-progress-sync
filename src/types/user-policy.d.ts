@@ -1,4 +1,4 @@
-import '@jellyfin/sdk/lib/generated-client/models/user-policy';
+export {};
 
 declare module '@jellyfin/sdk/lib/generated-client/models/user-policy' {
     interface UserPolicy {

@@ -1,5 +1,3 @@
-import { AUTHORIZATION_HEADER } from '@jellyfin/sdk/lib/constants';
-import { getAuthorizationHeader } from '@jellyfin/sdk/lib/utils';
 import { MINIMUM_VERSION } from '@jellyfin/sdk/lib/versions';
 import { getSessionApi } from '@jellyfin/sdk/lib/utils/api/session-api';
 import { compareVersions } from '@jellyfin/sdk/lib/utils/versioning';
@@ -109,7 +107,7 @@ export default class ConnectionManager {
 
             apiClient.serverInfo(existingServer);
 
-            apiClient.onAuthenticated = (instance, result) => onAuthenticated(instance, result, {}, true);
+            apiClient.onAuthenticated = (instance, result) => onAuthenticated(instance, result, {});
 
             if (!existingServers.length) {
                 const credentials = credentialProvider.credentials();
@@ -136,7 +134,7 @@ export default class ConnectionManager {
                 self._apiClients.push(apiClient);
                 apiClient.serverInfo(server);
                 apiClient.onAuthenticated = (instance, result) => {
-                    return onAuthenticated(instance, result, {}, true);
+                    return onAuthenticated(instance, result, {});
                 };
                 events.trigger(self, 'apiclientcreated', [apiClient]);
             }
@@ -159,7 +157,7 @@ export default class ConnectionManager {
             return self._getOrAddApiClient(server, getServerAddress(server));
         };
 
-        function onAuthenticated(apiClient, result, options, saveCredentials) {
+        function onAuthenticated(apiClient, result, options) {
             const credentials = credentialProvider.credentials();
             const servers = credentials.Servers.filter((s) => s.Id === result.ServerId);
 
@@ -218,37 +216,6 @@ export default class ConnectionManager {
             return promise.then(() => {
                 events.trigger(self, 'localusersignedin', [user]);
             });
-        }
-
-        function validateAuthentication(server, serverUrl) {
-            return ajax({
-                type: 'GET',
-                url: `${serverUrl}/System/Info`,
-                dataType: 'json',
-                headers: {
-                    [AUTHORIZATION_HEADER]: getAuthorizationHeader(
-                        {
-                            name: self.appName(),
-                            version: self.appVersion()
-                        },
-                        {
-                            id: self.deviceId(),
-                            name: self.deviceName()
-                        },
-                        server.AccessToken
-                    )
-                }
-            }).then(
-                (systemInfo) => {
-                    updateServerInfo(server, systemInfo);
-                    return Promise.resolve();
-                },
-                () => {
-                    server.UserId = null;
-                    server.AccessToken = null;
-                    return Promise.resolve();
-                }
-            );
         }
 
         function getImageUrl(localUser) {
@@ -611,9 +578,7 @@ export default class ConnectionManager {
             result.ApiClient.setSystemInfo(systemInfo);
             result.SystemInfo = systemInfo;
 
-            result.State = activeAccessToken && activeUserId
-                ? ConnectionState.SignedIn
-                : ConnectionState.ServerSignIn;
+            result.State = activeAccessToken && activeUserId ? ConnectionState.SignedIn : ConnectionState.ServerSignIn;
 
             result.Servers.push(server);
 
