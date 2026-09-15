@@ -59,8 +59,17 @@ const QuickConnectPage: FC = () => {
         if (!api) return;
         setError(undefined);
         try {
-            const response = await api.ajax({ type: 'POST', url: api.getUrl(`/DeviceApproval/Queue/${encodeURIComponent(request.Id)}/Select`) });
-            setSelected(await response.json());
+            // Ask the legacy client to deserialize this response.  Depending on
+            // the client version, ajax() otherwise returns either a Fetch
+            // Response or an already-parsed object; relying on Response.json()
+            // made the confirmation state disappear on clients that parse JSON.
+            const selectedDevice = await api.ajax({
+                type: 'POST',
+                url: api.getUrl(`/DeviceApproval/Queue/${encodeURIComponent(request.Id)}/Select`),
+                dataType: 'json',
+                headers: { accept: 'application/json' }
+            });
+            setSelected(selectedDevice?.json ? await selectedDevice.json() : selectedDevice);
         } catch {
             setError('This request was selected elsewhere, expired, or this session needs fresh direct 2FA.');
             void refresh();
@@ -102,6 +111,7 @@ const QuickConnectPage: FC = () => {
                 {selected && (
                     <section className='deviceApprovalConfirmation'>
                         <h2>Selected Device</h2>
+                        <p><strong>{selected.DeviceName}</strong> · {selected.AppName} {selected.AppVersion}</p>
                         <p>Yes will sign this device in as <strong>{accountLabel}</strong>. No other account will be used.</p>
                         <div className='deviceApprovalMatchingValue'>{selected.MatchingValue}</div>
                         <p>Does the requesting device display the same “Selected Device” prompt and value?</p>
@@ -114,8 +124,8 @@ const QuickConnectPage: FC = () => {
                             <p>Self-service trust is unavailable because this account has automatic logout enabled.</p>
                         )}
                         <div className='deviceApprovalActions'>
-                            <Button type='button' className='raised button-submit' title='Yes' onClick={() => void confirm(true)} />
-                            <Button type='button' className='raised cancel' title='No' onClick={() => void confirm(false)} />
+                            <Button type='button' className='raised button-submit' title={`Yes — sign in as ${accountLabel}`} onClick={() => void confirm(true)} />
+                            <Button type='button' className='raised cancel' title='No — return to queue' onClick={() => void confirm(false)} />
                         </div>
                     </section>
                 )}
