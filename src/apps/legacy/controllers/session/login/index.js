@@ -127,7 +127,7 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 id: 'deviceApprovalAlert'
             },
             title: 'Quick Sign-On',
-            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p>Open Quick Sign-On from any directly authenticated Jellyfin session.</p><p class="deviceApprovalDevice"></p><p class="deviceApprovalDomain"></p><p>This device will be signed in as the Jellyfin user who approves it.</p><div class="deviceApprovalMatch"></div><button type="button" class="raised cancel cancelDeviceApproval">Cancel</button></div>'
+            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p class="deviceApprovalDevice"></p><p class="deviceApprovalDomain"></p><div class="deviceApprovalMatch"></div></div>'
         });
 
         const device = document.querySelector('#deviceApprovalAlert .deviceApprovalDevice');
@@ -167,13 +167,10 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
         window.addEventListener('pagehide', cancelOnClose);
         window.addEventListener('beforeunload', cancelOnClose);
 
-        const cancelButton = document.querySelector('#deviceApprovalAlert .cancelDeviceApproval');
+        const cancelButton = document.querySelector('#deviceApprovalAlert .btnOption[data-id="ok"]');
         if (cancelButton) {
-            cancelButton.addEventListener('click', function () {
-                cancelOnClose();
-                const dlg = document.getElementById('deviceApprovalAlert');
-                if (dlg) dialogHelper.close(dlg);
-            });
+            cancelButton.textContent = 'Cancel';
+            cancelButton.addEventListener('click', cancelOnClose, { once: true });
         }
 
         const interval = setInterval(function() {

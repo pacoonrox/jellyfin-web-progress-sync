@@ -39,7 +39,6 @@ const QuickConnectPage: FC = () => {
         try {
             const data = await api.getJSON(api.getUrl('/DeviceApproval/Queue')) as PendingDevice[];
             setRequests(data);
-            setError(undefined);
         } catch {
             setError('A fresh direct password and 2FA login is required before this session can approve devices.');
         }
@@ -53,6 +52,13 @@ const QuickConnectPage: FC = () => {
         }, 1000);
         return () => window.clearInterval(interval);
     }, [ refresh ]);
+
+    useEffect(() => {
+        if (selected && !requests.some(request => request.Id === selected.Id && request.State === 'Selected')) {
+            setSelected(undefined);
+            setError('The requesting device canceled or closed this approval request.');
+        }
+    }, [ requests, selected ]);
 
     const selectRequest = useCallback(async (request: PendingDevice) => {
         if (!api) return;

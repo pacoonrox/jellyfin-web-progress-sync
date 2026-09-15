@@ -24,18 +24,35 @@
     margin: 2rem 0 1rem;
 }
 
+.trustedDeviceTabs {
+    display: flex;
+    gap: .5rem;
+    margin: 1.5rem 0 1rem;
+}
+
 .trustedDeviceToolbar input[type='search'] {
     min-width: min(24rem, 100%);
 }
 
 .trustedDeviceGroup {
     margin: 1.5rem 0;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: .4rem;
+    padding: .75rem;
+}
+
+.trustedDeviceGroup summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1.1rem;
 }
 
 .trustedDeviceGroup header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: flex-end;
+    margin-top: .75rem;
 }
 
 .trustedDeviceTableWrap {
