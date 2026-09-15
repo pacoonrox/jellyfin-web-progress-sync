@@ -14,6 +14,7 @@ interface PendingDevice {
     AppVersion: string;
     Platform: string;
     OsVersion: string;
+    ConnectionDomain: string;
     RequestingIpAddress?: string;
     CreatedUtc: string;
     ExpiresUtc: string;
@@ -95,13 +96,13 @@ const QuickConnectPage: FC = () => {
             <div className='padded-left padded-right padded-bottom-page deviceApprovalPortal'>
                 <h2>Shared device-approval portal</h2>
                 <p className='deviceApprovalIdentity'>Approving as <strong>{accountLabel}</strong></p>
-                <p>Every authenticated user sees the same anonymous queue. Approval signs the selected device into your account and grants your permissions.</p>
+                <p>Every authenticated user sees the same anonymous queue. If you approve a request, that device will be signed in as <strong>{accountLabel}</strong> and receive your permissions.</p>
                 {error && <div className='quickConnectError'>{error}</div>}
 
                 {selected && (
                     <section className='deviceApprovalConfirmation'>
                         <h2>Selected Device</h2>
-                        <p>Sign this device in as <strong>{accountLabel}</strong>?</p>
+                        <p>Yes will sign this device in as <strong>{accountLabel}</strong>. No other account will be used.</p>
                         <div className='deviceApprovalMatchingValue'>{selected.MatchingValue}</div>
                         <p>Does the requesting device display the same “Selected Device” prompt and value?</p>
                         {selected.TrustAllowed ? (
@@ -128,6 +129,7 @@ const QuickConnectPage: FC = () => {
                                 <dl>
                                     <dt>Client</dt><dd>{request.AppName} {request.AppVersion}</dd>
                                     <dt>Platform</dt><dd>{request.Platform || 'Unknown'} {request.OsVersion}</dd>
+                                    <dt>Connection domain</dt><dd>{request.ConnectionDomain || 'Unknown'}</dd>
                                     <dt>Entered queue</dt><dd>{new Date(request.CreatedUtc).toLocaleString()}</dd>
                                     <dt>Expires in</dt><dd>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</dd>
                                     {isAdministrator && <><dt>Requesting IP</dt><dd>{request.RequestingIpAddress || 'Unknown'}</dd></>}

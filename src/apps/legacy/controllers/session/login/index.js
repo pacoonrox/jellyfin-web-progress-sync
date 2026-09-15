@@ -120,8 +120,13 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 id: 'deviceApprovalAlert'
             },
             title: 'Quick Sign-On',
-            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p>Open Quick Sign-On from any directly authenticated Jellyfin session.</p><div class="deviceApprovalMatch"></div><button type="button" class="raised cancel cancelDeviceApproval">Cancel</button></div>'
+            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p>Open Quick Sign-On from any directly authenticated Jellyfin session.</p><p class="deviceApprovalDomain"></p><p>This device will be signed in as the Jellyfin user who approves it.</p><div class="deviceApprovalMatch"></div><button type="button" class="raised cancel cancelDeviceApproval">Cancel</button></div>'
         });
+
+        const domain = document.querySelector('#deviceApprovalAlert .deviceApprovalDomain');
+        if (domain) {
+            domain.textContent = 'Connection domain: ' + (json.ConnectionDomain || 'Unknown');
+        }
 
         const connectUrl = apiClient.getUrl('/DeviceApproval/Requests/Status?secret=' + encodeURIComponent(json.RequestSecret));
         const cancelButton = document.querySelector('#deviceApprovalAlert .cancelDeviceApproval');
