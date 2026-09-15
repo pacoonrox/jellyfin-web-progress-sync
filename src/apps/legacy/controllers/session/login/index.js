@@ -120,8 +120,13 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 id: 'deviceApprovalAlert'
             },
             title: 'Quick Sign-On',
-            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p>Open Quick Sign-On from any directly authenticated Jellyfin session.</p><p class="deviceApprovalDomain"></p><p>This device will be signed in as the Jellyfin user who approves it.</p><div class="deviceApprovalMatch"></div><button type="button" class="raised cancel cancelDeviceApproval">Cancel</button></div>'
+            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p>Open Quick Sign-On from any directly authenticated Jellyfin session.</p><p class="deviceApprovalDevice"></p><p class="deviceApprovalDomain"></p><p>This device will be signed in as the Jellyfin user who approves it.</p><div class="deviceApprovalMatch"></div><button type="button" class="raised cancel cancelDeviceApproval">Cancel</button></div>'
         });
+
+        const device = document.querySelector('#deviceApprovalAlert .deviceApprovalDevice');
+        if (device) {
+            device.textContent = 'Device: ' + (json.DeviceName || 'Unknown device');
+        }
 
         const domain = document.querySelector('#deviceApprovalAlert .deviceApprovalDomain');
         if (domain) {
@@ -129,11 +134,36 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
         }
 
         const connectUrl = apiClient.getUrl('/DeviceApproval/Requests/Status?secret=' + encodeURIComponent(json.RequestSecret));
+        const cancelUrl = apiClient.getUrl('/DeviceApproval/Requests?secret=' + encodeURIComponent(json.RequestSecret));
+        const beaconCancelUrl = apiClient.getUrl('/DeviceApproval/Requests/Cancel?secret=' + encodeURIComponent(json.RequestSecret));
+        let finished = false;
+
+        const removeLifecycleHandlers = function () {
+            window.removeEventListener('pagehide', cancelOnClose);
+            window.removeEventListener('beforeunload', cancelOnClose);
+        };
+
+        const cancelOnClose = function () {
+            if (finished) {
+                return;
+            }
+            finished = true;
+            if (interval) {
+                clearInterval(interval);
+            }
+            if (!navigator.sendBeacon(beaconCancelUrl, new Blob([], { type: 'application/octet-stream' }))) {
+                fetch(cancelUrl, { method: 'DELETE', keepalive: true }).catch(() => undefined);
+            }
+            removeLifecycleHandlers();
+        };
+
+        window.addEventListener('pagehide', cancelOnClose);
+        window.addEventListener('beforeunload', cancelOnClose);
+
         const cancelButton = document.querySelector('#deviceApprovalAlert .cancelDeviceApproval');
         if (cancelButton) {
             cancelButton.addEventListener('click', function () {
-                clearInterval(interval);
-                apiClient.ajax({ type: 'DELETE', url: apiClient.getUrl('/DeviceApproval/Requests?secret=' + encodeURIComponent(json.RequestSecret)) });
+                cancelOnClose();
                 const dlg = document.getElementById('deviceApprovalAlert');
                 if (dlg) dialogHelper.close(dlg);
             });
@@ -159,7 +189,9 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                     return;
                 }
 
+                finished = true;
                 clearInterval(interval);
+                removeLifecycleHandlers();
                 const dlg = document.getElementById('deviceApprovalAlert');
                 if (dlg) {
                     dialogHelper.close(dlg);
@@ -168,7 +200,9 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 const result = data.AuthenticationResult;
                 onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl, false, result.ServerId);
             }, function (e) {
+                finished = true;
                 clearInterval(interval);
+                removeLifecycleHandlers();
 
                 // Close the QuickConnect dialog
                 const dlg = document.getElementById('deviceApprovalAlert');
