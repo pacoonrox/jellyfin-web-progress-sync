@@ -28,7 +28,6 @@ const QuickConnectPage: FC = () => {
     const { __legacyApiClient__: api, user } = useApi();
     const [ requests, setRequests ] = useState<PendingDevice[]>([]);
     const [ selected, setSelected ] = useState<PendingDevice>();
-    const [ trustDevice, setTrustDevice ] = useState(false);
     const [ error, setError ] = useState<string>();
     const [ now, setNow ] = useState(Date.now());
     const isAdministrator = user?.Policy?.IsAdministrator === true;
@@ -82,18 +81,17 @@ const QuickConnectPage: FC = () => {
             await api.ajax({
                 type: 'POST',
                 url: api.getUrl(`/DeviceApproval/Queue/${encodeURIComponent(selected.Id)}/Confirm`),
-                data: JSON.stringify({ Matches: matches, TrustDevice: matches && selected.TrustAllowed && trustDevice }),
+                data: JSON.stringify({ Matches: matches, TrustDevice: matches && selected.TrustAllowed }),
                 contentType: 'application/json'
             });
             setSelected(undefined);
-            setTrustDevice(false);
             void refresh();
         } catch {
             setError('Approval did not complete. The request may have expired or been completed elsewhere.');
             setSelected(undefined);
             void refresh();
         }
-    }, [ api, refresh, selected, trustDevice ]);
+    }, [ api, refresh, selected ]);
 
     return (
         <Page
@@ -116,12 +114,9 @@ const QuickConnectPage: FC = () => {
                         <div className='deviceApprovalMatchingValue'>{selected.MatchingValue}</div>
                         <p>Does the requesting device display the same “Selected Device” prompt and value?</p>
                         {selected.TrustAllowed ? (
-                            <label className='deviceApprovalTrust'>
-                                <input type='checkbox' checked={trustDevice} onChange={event => setTrustDevice(event.currentTarget.checked)} />
-                                Trust this device for {selected.TrustDurationDays || 30} days
-                            </label>
+                            <p>This device will be trusted automatically for {selected.TrustDurationDays || 30} days.</p>
                         ) : (
-                            <p>Self-service trust is unavailable because this account has automatic logout enabled.</p>
+                            <p>Automatic trust is unavailable because this account has automatic logout enabled. An administrator may trust this device manually.</p>
                         )}
                         <div className='deviceApprovalActions'>
                             <Button type='button' className='raised button-submit' title={`Yes — sign in as ${accountLabel}`} onClick={() => void confirm(true)} />

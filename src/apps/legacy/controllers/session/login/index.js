@@ -34,6 +34,13 @@ domPurify.setConfig({
 
 const enableFocusTransform = !browser.slow && !browser.edge;
 
+// The legacy client has returned both Fetch Response objects and parsed JSON
+// values across supported Jellyfin web versions. Keep authentication flows
+// compatible with both forms.
+function parseApiResponse(response) {
+    return response && typeof response.json === 'function' ? response.json() : response;
+}
+
 function authenticateUserByName(page, apiClient, url, username, password, twoFactorCode, trustDevice) {
     loading.show();
     let deviceCredential = '';
@@ -55,17 +62,15 @@ function authenticateUserByName(page, apiClient, url, username, password, twoFac
             OsVersion: navigator.userAgent || ''
         }),
         url: apiClient.getUrl('Users/AuthenticateByName'),
-        contentType: 'application/json'
-    }, true).then(response => response.json()).then(function (result) {
+        contentType: 'application/json',
+        dataType: 'json',
+        headers: { accept: 'application/json' }
+    }, true).then(parseApiResponse).then(function (result) {
         const user = result.User;
         loading.hide();
 
         if (result.RequiresTwoFactorAuthentication) {
             page.querySelector('.twoFactorCodeContainer').classList.remove('hide');
-            const canSelfTrust = result.CanTrustDevice === true && !!deviceCredential;
-            page.querySelector('.trustDeviceContainer').classList.toggle('hide', !canSelfTrust);
-            page.querySelector('.trustDeviceLabel').textContent = `Trust this device for ${result.TrustedDeviceDefaultDays || 30} days`;
-            page.querySelector('#chkTrustDevice').checked = false;
             page.querySelector('#txtTwoFactorCode').value = '';
             page.querySelector('#txtTwoFactorCode').focus();
             toast(globalize.translate('MessageTwoFactorCodeRequired'));
@@ -108,8 +113,10 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
             Platform: navigator.userAgent || '',
             OsVersion: navigator.userAgent || ''
         }),
-        contentType: 'application/json'
-    }, true).then(res => res.json()).then(function (json) {
+        contentType: 'application/json',
+        dataType: 'json',
+        headers: { accept: 'application/json' }
+    }, true).then(parseApiResponse).then(function (json) {
         if (!json.RequestSecret) {
             console.error('Malformed device approval response');
             return false;
@@ -278,8 +285,6 @@ function showManualForm(context, showCancel, focusPassword) {
     context.querySelector('.visualLoginForm').classList.add('hide');
     context.querySelector('.btnManual').classList.add('hide');
     context.querySelector('.twoFactorCodeContainer').classList.add('hide');
-    context.querySelector('.trustDeviceContainer').classList.add('hide');
-    context.querySelector('#chkTrustDevice').checked = false;
     context.querySelector('#txtTwoFactorCode').value = '';
 
     if (focusPassword) {
@@ -408,7 +413,7 @@ export default function (view, params) {
             view.querySelector('#txtManualName').value,
             view.querySelector('#txtManualPassword').value,
             view.querySelector('#txtTwoFactorCode').value,
-            !view.querySelector('.trustDeviceContainer').classList.contains('hide') && view.querySelector('#chkTrustDevice').checked);
+            false);
         e.preventDefault();
         return false;
     });
