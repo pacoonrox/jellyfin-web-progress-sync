@@ -156,6 +156,7 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
 
         window.addEventListener('pagehide', cancelOnClose);
         window.addEventListener('beforeunload', cancelOnClose);
+        let statusFailures = 0;
 
         // baseAlert waits for router readiness before creating the dialog, so
         // wire its content/button after it appears rather than racing the DOM.
@@ -178,6 +179,7 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
 
         const interval = setInterval(function() {
             apiClient.getJSON(connectUrl).then(async function(data) {
+                statusFailures = 0;
                 const match = document.querySelector('#deviceApprovalAlert .deviceApprovalMatch');
                 if (match && data.State === 'Selected') {
                     while (match.firstChild) {
@@ -207,11 +209,22 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 const result = data.AuthenticationResult;
                 onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl, false, result.ServerId);
             }, function (e) {
+                statusFailures++;
+                const status = e?.status ?? e?.statusCode;
+                if (status !== 404 && status !== 410) {
+                    // A temporary network/WebSocket failure must not cancel a
+                    // live request. Keep polling until the server reports a
+                    // terminal state or the user explicitly cancels.
+                    if (statusFailures === 1 || statusFailures % 5 === 0) {
+                        console.warn('Unable to poll device approval status; retrying', e);
+                    }
+                    return;
+                }
+
                 finished = true;
                 clearInterval(interval);
                 removeLifecycleHandlers();
 
-                // Close the QuickConnect dialog
                 const dlg = document.getElementById('deviceApprovalAlert');
                 if (dlg) {
                     dialogHelper.close(dlg);
@@ -222,7 +235,7 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                     title: globalize.translate('HeaderError')
                 });
 
-                console.error('Unable to login with quick connect', e);
+                console.error('Device approval request is no longer available', e);
             });
         }, 2000, connectUrl);
 
