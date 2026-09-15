@@ -130,16 +130,6 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
             html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p class="deviceApprovalDevice"></p><p class="deviceApprovalDomain"></p><div class="deviceApprovalMatch"></div></div>'
         });
 
-        const device = document.querySelector('#deviceApprovalAlert .deviceApprovalDevice');
-        if (device) {
-            device.textContent = 'Device: ' + (json.DeviceName || 'Unknown device');
-        }
-
-        const domain = document.querySelector('#deviceApprovalAlert .deviceApprovalDomain');
-        if (domain) {
-            domain.textContent = 'Connection domain: ' + (json.ConnectionDomain || 'Unknown');
-        }
-
         const connectUrl = apiClient.getUrl('/DeviceApproval/Requests/Status?secret=' + encodeURIComponent(json.RequestSecret));
         const cancelUrl = apiClient.getUrl('/DeviceApproval/Requests?secret=' + encodeURIComponent(json.RequestSecret));
         const beaconCancelUrl = apiClient.getUrl('/DeviceApproval/Requests/Cancel?secret=' + encodeURIComponent(json.RequestSecret));
@@ -167,11 +157,24 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
         window.addEventListener('pagehide', cancelOnClose);
         window.addEventListener('beforeunload', cancelOnClose);
 
-        const cancelButton = document.querySelector('#deviceApprovalAlert .btnOption[data-id="ok"]');
-        if (cancelButton) {
+        // baseAlert waits for router readiness before creating the dialog, so
+        // wire its content/button after it appears rather than racing the DOM.
+        const wireDialog = function () {
+            if (finished) return;
+            const device = document.querySelector('#deviceApprovalAlert .deviceApprovalDevice');
+            const domain = document.querySelector('#deviceApprovalAlert .deviceApprovalDomain');
+            const cancelButton = document.querySelector('#deviceApprovalAlert .btnOption[data-id="ok"]');
+            if (!device || !domain || !cancelButton) {
+                window.setTimeout(wireDialog, 0);
+                return;
+            }
+
+            device.textContent = 'Device: ' + (json.DeviceName || 'Unknown device');
+            domain.textContent = 'Connection domain: ' + (json.ConnectionDomain || 'Unknown');
             cancelButton.textContent = 'Cancel';
             cancelButton.addEventListener('click', cancelOnClose, { once: true });
-        }
+        };
+        wireDialog();
 
         const interval = setInterval(function() {
             apiClient.getJSON(connectUrl).then(async function(data) {
