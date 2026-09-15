@@ -16,6 +16,13 @@
                 <input is="emby-input" id="txtTwoFactorCode" type="text" label="${LabelTwoFactorCode}" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" />
             </div>
 
+            <div class="inputContainer trustDeviceContainer hide">
+                <label class="checkboxContainer">
+                    <input is="emby-checkbox" id="chkTrustDevice" type="checkbox" />
+                    <span class="trustDeviceLabel">Trust this device for 30 days</span>
+                </label>
+            </div>
+
             <button is="emby-button" type="submit" class="raised button-submit block">
                 <span>${ButtonSignIn}</span>
             </button>
@@ -38,7 +45,7 @@
             </button>
 
             <button is="emby-button" type="button" class="raised cancel block btnQuick hide">
-                <span>${ButtonUseQuickConnect}</span>
+                <span>Quick Sign-On</span>
             </button>
 
             <button is="emby-button" type="button" class="raised block btnSelectServer">

@@ -54,7 +54,7 @@ const AppUserMenu: FC<AppUserMenuProps> = ({
     }, [ onMenuClose ]);
 
     const onLogoutClick = useCallback(() => {
-        Dashboard.logout();
+        void Dashboard.logout();
         onMenuClose();
     }, [ onMenuClose ]);
 
@@ -173,7 +173,7 @@ const AppUserMenu: FC<AppUserMenuProps> = ({
                         <PhonelinkLock />
                     </ListItemIcon>
                     <ListItemText>
-                        {globalize.translate('QuickConnect')}
+                        Quick Sign-On
                     </ListItemText>
                 </MenuItem>
             )}

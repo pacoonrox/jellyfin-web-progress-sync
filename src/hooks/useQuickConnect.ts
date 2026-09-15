@@ -1,4 +1,3 @@
-import { getAuthenticationApi } from '@jellyfin/sdk/lib/utils/api/authentication-api';
 import { useQuery } from '@tanstack/react-query';
 import type { AxiosRequestConfig } from 'axios';
 
@@ -8,18 +7,17 @@ const fetchQuickConnectEnabled = async (
     apiContext: JellyfinApiContext,
     options?: AxiosRequestConfig
 ) => {
-    const { api } = apiContext;
-    if (!api) throw new Error('No API instance available');
+    const { api, __legacyApiClient__: legacyApi } = apiContext;
+    if (!api || !legacyApi) throw new Error('No API instance available');
 
-    const response = await getAuthenticationApi(api)
-        .getQuickConnectEnabled(options);
+    const response = await api.axiosInstance.get<boolean>(legacyApi.getUrl('/DeviceApproval/Enabled'), options);
     return response.data;
 };
 
 export const useQuickConnectEnabled = () => {
     const currentApi = useApi();
     return useQuery({
-        queryKey: [ 'QuickConnect', 'Enabled' ],
+        queryKey: [ 'DeviceApproval', 'Enabled' ],
         queryFn: ({ signal }) => fetchQuickConnectEnabled(currentApi, { signal })
     });
 };

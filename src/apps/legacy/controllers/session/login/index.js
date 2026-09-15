@@ -1,13 +1,12 @@
 import createDOMPurify from 'dompurify';
-import escapeHtml from 'escape-html';
 import markdownIt from 'markdown-it';
-import QRCode from 'qrcode';
 
 import { AppFeature } from 'constants/appFeature';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 import { registerTwoFactor } from 'components/twoFactorSetup/twoFactorSetup';
 import Events from 'utils/events';
 import { setSessionAuthentication } from 'utils/sessionAuthentication';
+import { getDeviceCredential } from 'utils/deviceCredential';
 
 import { appHost } from 'components/apphost';
 import appSettings from 'scripts/settings/appSettings';
@@ -35,48 +34,25 @@ domPurify.setConfig({
 
 const enableFocusTransform = !browser.slow && !browser.edge;
 
-function getQuickConnectAuthorizeUrl(code) {
-    const route = '#/quickconnect?code=' + encodeURIComponent(code);
-
-    return `${window.location.origin}${window.location.pathname}${route}`;
-}
-
-async function getQuickConnectDialogHtml(code) {
-    const authorizeUrl = getQuickConnectAuthorizeUrl(code);
-    let qrHtml = '';
-
-    try {
-        const qrDataUrl = await QRCode.toDataURL(authorizeUrl, {
-            errorCorrectionLevel: 'M',
-            margin: 1,
-            width: 196,
-            color: {
-                dark: '#0b1016',
-                light: '#ffffff'
-            }
-        });
-
-        qrHtml = `<img class="quickConnectLoginQr" src="${qrDataUrl}" alt="Quick Connect QR code" />`;
-    } catch (err) {
-        console.warn('[LoginPage] unable to render Quick Connect QR code', err);
-    }
-
-    return `
-        <div class="quickConnectLoginPrompt">
-            ${qrHtml}
-            <div class="quickConnectLoginCode">${escapeHtml(code)}</div>
-        </div>
-    `;
-}
-
-function authenticateUserByName(page, apiClient, url, username, password, twoFactorCode) {
+function authenticateUserByName(page, apiClient, url, username, password, twoFactorCode, trustDevice) {
     loading.show();
+    let deviceCredential = '';
+    try {
+        deviceCredential = getDeviceCredential();
+    } catch (err) {
+        // Older clients can still use password/TOTP; they simply cannot opt into trust.
+        console.warn('[LoginPage] secure device storage unavailable', err);
+    }
     apiClient.ajax({
         type: 'POST',
         data: JSON.stringify({
             Username: username,
             Pw: password,
-            TwoFactorCode: twoFactorCode
+            TwoFactorCode: twoFactorCode,
+            DeviceCredential: deviceCredential,
+            TrustDevice: trustDevice === true,
+            Platform: navigator.userAgent || '',
+            OsVersion: navigator.userAgent || ''
         }),
         url: apiClient.getUrl('Users/AuthenticateByName'),
         contentType: 'application/json'
@@ -86,6 +62,10 @@ function authenticateUserByName(page, apiClient, url, username, password, twoFac
 
         if (result.RequiresTwoFactorAuthentication) {
             page.querySelector('.twoFactorCodeContainer').classList.remove('hide');
+            const canSelfTrust = result.CanTrustDevice === true && !!deviceCredential;
+            page.querySelector('.trustDeviceContainer').classList.toggle('hide', !canSelfTrust);
+            page.querySelector('.trustDeviceLabel').textContent = `Trust this device for ${result.TrustedDeviceDefaultDays || 30} days`;
+            page.querySelector('#chkTrustDevice').checked = false;
             page.querySelector('#txtTwoFactorCode').value = '';
             page.querySelector('#txtTwoFactorCode').focus();
             toast(globalize.translate('MessageTwoFactorCodeRequired'));
@@ -111,66 +91,103 @@ function authenticateUserByName(page, apiClient, url, username, password, twoFac
     });
 }
 
-function authenticateQuickConnect(apiClient, targetUrl) {
-    const url = apiClient.getUrl('/QuickConnect/Initiate');
-    apiClient.ajax({ type: 'POST', url }, true).then(res => res.json()).then(async function (json) {
-        if (!json.Secret || !json.Code) {
-            console.error('Malformed quick connect response', json);
+function authenticateDeviceApproval(apiClient, targetUrl) {
+    let deviceCredential;
+    try {
+        deviceCredential = getDeviceCredential();
+    } catch {
+        Dashboard.alert({ message: 'This client cannot create a secure installation credential.', title: globalize.translate('HeaderError') });
+        return false;
+    }
+    const url = apiClient.getUrl('/DeviceApproval/Requests');
+    apiClient.ajax({
+        type: 'POST',
+        url,
+        data: JSON.stringify({
+            DeviceCredential: deviceCredential,
+            Platform: navigator.userAgent || '',
+            OsVersion: navigator.userAgent || ''
+        }),
+        contentType: 'application/json'
+    }, true).then(res => res.json()).then(function (json) {
+        if (!json.RequestSecret) {
+            console.error('Malformed device approval response');
             return false;
         }
 
         baseAlert({
             dialogOptions: {
-                id: 'quickConnectAlert'
+                id: 'deviceApprovalAlert'
             },
-            title: globalize.translate('QuickConnect'),
-            html: await getQuickConnectDialogHtml(json.Code)
+            title: 'Quick Sign-On',
+            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p>Open Quick Sign-On from any directly authenticated Jellyfin session.</p><div class="deviceApprovalMatch"></div><button type="button" class="raised cancel cancelDeviceApproval">Cancel</button></div>'
         });
 
-        const connectUrl = apiClient.getUrl('/QuickConnect/Connect?Secret=' + json.Secret);
+        const connectUrl = apiClient.getUrl('/DeviceApproval/Requests/Status?secret=' + encodeURIComponent(json.RequestSecret));
+        const cancelButton = document.querySelector('#deviceApprovalAlert .cancelDeviceApproval');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function () {
+                clearInterval(interval);
+                apiClient.ajax({ type: 'DELETE', url: apiClient.getUrl('/DeviceApproval/Requests?secret=' + encodeURIComponent(json.RequestSecret)) });
+                const dlg = document.getElementById('deviceApprovalAlert');
+                if (dlg) dialogHelper.close(dlg);
+            });
+        }
 
         const interval = setInterval(function() {
             apiClient.getJSON(connectUrl).then(async function(data) {
-                if (!data.Authenticated) {
+                const match = document.querySelector('#deviceApprovalAlert .deviceApprovalMatch');
+                if (match && data.State === 'Selected') {
+                    while (match.firstChild) {
+                        match.removeChild(match.firstChild);
+                    }
+                    const heading = document.createElement('h3');
+                    heading.textContent = 'Selected Device';
+                    const value = document.createElement('div');
+                    value.className = 'quickConnectLoginCode';
+                    value.textContent = data.MatchingValue;
+                    const instruction = document.createElement('p');
+                    instruction.textContent = 'Confirm that this value appears on the approving device.';
+                    match.append(heading, value, instruction);
+                }
+                if (data.State !== 'Approved' || !data.AuthenticationResult) {
                     return;
                 }
 
                 clearInterval(interval);
-
-                // Close the QuickConnect dialog
-                const dlg = document.getElementById('quickConnectAlert');
+                const dlg = document.getElementById('deviceApprovalAlert');
                 if (dlg) {
                     dialogHelper.close(dlg);
                 }
 
-                const result = await apiClient.quickConnect(data.Secret);
+                const result = data.AuthenticationResult;
                 onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl, false, result.ServerId);
             }, function (e) {
                 clearInterval(interval);
 
                 // Close the QuickConnect dialog
-                const dlg = document.getElementById('quickConnectAlert');
+                const dlg = document.getElementById('deviceApprovalAlert');
                 if (dlg) {
                     dialogHelper.close(dlg);
                 }
 
                 Dashboard.alert({
-                    message: globalize.translate('QuickConnectDeactivated'),
+                    message: 'The device-approval request was canceled or expired.',
                     title: globalize.translate('HeaderError')
                 });
 
                 console.error('Unable to login with quick connect', e);
             });
-        }, 5000, connectUrl);
+        }, 2000, connectUrl);
 
         return true;
     }, function(e) {
         Dashboard.alert({
-            message: globalize.translate('QuickConnectNotActive'),
+            message: 'The shared device-approval portal is not available.',
             title: globalize.translate('HeaderError')
         });
 
-        console.error('Quick connect error: ', e);
+        console.error('Device approval error: ', e);
         return false;
     });
 }
@@ -222,6 +239,8 @@ function showManualForm(context, showCancel, focusPassword) {
     context.querySelector('.visualLoginForm').classList.add('hide');
     context.querySelector('.btnManual').classList.add('hide');
     context.querySelector('.twoFactorCodeContainer').classList.add('hide');
+    context.querySelector('.trustDeviceContainer').classList.add('hide');
+    context.querySelector('#chkTrustDevice').checked = false;
     context.querySelector('#txtTwoFactorCode').value = '';
 
     if (focusPassword) {
@@ -349,13 +368,14 @@ export default function (view, params) {
             getTargetUrl(),
             view.querySelector('#txtManualName').value,
             view.querySelector('#txtManualPassword').value,
-            view.querySelector('#txtTwoFactorCode').value);
+            view.querySelector('#txtTwoFactorCode').value,
+            !view.querySelector('.trustDeviceContainer').classList.contains('hide') && view.querySelector('#chkTrustDevice').checked);
         e.preventDefault();
         return false;
     });
     view.querySelector('.btnCancel').addEventListener('click', showVisualForm);
     view.querySelector('.btnQuick').addEventListener('click', function () {
-        authenticateQuickConnect(getApiClient(), getTargetUrl());
+        authenticateDeviceApproval(getApiClient(), getTargetUrl());
         return false;
     });
     view.querySelector('.btnManual').addEventListener('click', function () {
@@ -376,14 +396,14 @@ export default function (view, params) {
 
         const apiClient = getApiClient();
 
-        apiClient.getQuickConnect('Enabled')
+        apiClient.getJSON(apiClient.getUrl('/DeviceApproval/Enabled'))
             .then(enabled => {
                 if (enabled === true) {
                     view.querySelector('.btnQuick').classList.remove('hide');
                 }
             })
             .catch(() => {
-                console.debug('Failed to get QuickConnect status');
+                console.debug('Failed to get device approval status');
             });
 
         apiClient.getPublicUsers().then(function (users) {

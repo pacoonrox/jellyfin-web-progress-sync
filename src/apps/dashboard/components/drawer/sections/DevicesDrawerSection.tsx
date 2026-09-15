@@ -1,5 +1,6 @@
 import Analytics from '@mui/icons-material/Analytics';
 import Devices from '@mui/icons-material/Devices';
+import PhonelinkLock from '@mui/icons-material/PhonelinkLock';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -20,6 +21,14 @@ const DevicesDrawerSection = () => {
                 </ListSubheader>
             }
         >
+            <ListItem disablePadding>
+                <ListItemLink to='/dashboard/trustedDevices'>
+                    <ListItemIcon>
+                        <PhonelinkLock />
+                    </ListItemIcon>
+                    <ListItemText primary='Trusted devices' />
+                </ListItemLink>
+            </ListItem>
             <ListItem disablePadding>
                 <ListItemLink to='/dashboard/devices'>
                     <ListItemIcon>

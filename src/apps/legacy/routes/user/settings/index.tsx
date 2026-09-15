@@ -153,7 +153,7 @@ const UserSettingsPage: FC = () => {
                                     <span className='material-icons listItemIcon listItemIcon-transparent phonelink_lock' aria-hidden='true' />
                                     <div className='listItemBody'>
                                         <div className='listItemBodyText'>
-                                            {globalize.translate('QuickConnect')}
+                                            Quick Sign-On portal
                                         </div>
                                     </div>
                                 </div>

@@ -37,7 +37,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     config.UICulture = formData.get('UICulture')?.toString();
     config.CachePath = formData.get('CachePath')?.toString();
     config.MetadataPath = formData.get('MetadataPath')?.toString();
-    config.QuickConnectAvailable = formData.get('QuickConnectAvailable')?.toString() === 'on';
+    config.QuickConnectAvailable = false;
+    (config as typeof config & { DeviceApprovalAvailable?: boolean }).DeviceApprovalAvailable = formData.get('DeviceApprovalAvailable')?.toString() === 'on';
     config.LibraryScanFanoutConcurrency = parseInt(formData.get('LibraryScanFanoutConcurrency')?.toString() || '0', 10);
     config.ParallelImageEncodingLimit = parseInt(formData.get('ParallelImageEncodingLimit')?.toString() || '0', 10);
 
@@ -217,17 +218,17 @@ export const Component = () => {
                                 }}
                             />
 
-                            <Typography variant='h2'>{globalize.translate('QuickConnect')}</Typography>
+                            <Typography variant='h2'>Shared device approval</Typography>
 
                             <FormControl>
                                 <FormControlLabel
                                     control={
                                         <Checkbox
-                                            name='QuickConnectAvailable'
-                                            defaultChecked={config.QuickConnectAvailable}
+                                            name='DeviceApprovalAvailable'
+                                            defaultChecked={(config as typeof config & { DeviceApprovalAvailable?: boolean }).DeviceApprovalAvailable ?? true}
                                         />
                                     }
-                                    label={globalize.translate('EnableQuickConnect')}
+                                    label='Enable the shared Quick Sign-On approval portal'
                                 />
                             </FormControl>
 

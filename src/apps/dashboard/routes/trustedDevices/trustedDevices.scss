@@ -1,0 +1,56 @@
+.trustedDevicesPage {
+    max-width: 90rem;
+}
+
+.trustedDevicePolicy,
+.trustedDeviceToolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.trustedDevicePolicy label {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.trustedDevicePolicy input[type='number'] {
+    width: 6rem;
+}
+
+.trustedDeviceToolbar {
+    margin: 2rem 0 1rem;
+}
+
+.trustedDeviceToolbar input[type='search'] {
+    min-width: min(24rem, 100%);
+}
+
+.trustedDeviceGroup {
+    margin: 1.5rem 0;
+}
+
+.trustedDeviceGroup header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.trustedDeviceTableWrap {
+    overflow-x: auto;
+}
+
+.trustedDeviceTableWrap table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.trustedDeviceTableWrap th,
+.trustedDeviceTableWrap td {
+    padding: 0.75rem;
+    border-bottom: 1px solid rgb(255 255 255 / 15%);
+    text-align: left;
+    vertical-align: top;
+}
