@@ -11,7 +11,6 @@
     margin: 0 auto;
 }
 
-.deviceApprovalIdentity,
 .deviceApprovalConfirmation,
 .deviceApprovalCard {
     background: rgb(255 255 255 / 8%);
@@ -44,13 +43,6 @@
     text-align: center;
 }
 
-.deviceApprovalMatchingValue {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin: 1rem;
-}
-
 .deviceApprovalActions {
     display: flex;
     justify-content: center;
@@ -61,4 +53,27 @@
 .deviceApprovalTrust {
     display: block;
     margin: 1rem;
+}
+
+.legacyQuickConnect {
+    border-top: 1px solid rgb(255 255 255 / 18%);
+    margin-top: 2rem;
+    padding-top: 1rem;
+}
+
+.legacyQuickConnectForm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+    max-width: 26rem;
+}
+
+.legacyQuickConnectForm .inputContainer {
+    flex: 1;
+    margin: 0;
+}
+
+.legacyQuickConnectResult {
+    margin-bottom: 0;
 }

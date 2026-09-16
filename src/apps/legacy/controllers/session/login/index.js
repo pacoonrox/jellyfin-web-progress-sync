@@ -77,7 +77,7 @@ function authenticateUserByName(page, apiClient, url, username, password, twoFac
             return;
         }
 
-        onLoginSuccessful(user.Id, result.AccessToken, apiClient, url, result.RequiresTwoFactorSetup, result.ServerId);
+        onLoginSuccessful(user, result.AccessToken, apiClient, url, result.RequiresTwoFactorSetup, result.ServerId);
     }, function (response) {
         page.querySelector('#txtManualPassword').value = '';
         page.querySelector('#txtTwoFactorCode').value = '';
@@ -127,7 +127,7 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 id: 'deviceApprovalAlert'
             },
             title: 'Quick Sign-On',
-            html: '<div class="deviceApprovalWaiting"><h2>Waiting for approval</h2><p class="deviceApprovalDevice"></p><p class="deviceApprovalDomain"></p><div class="deviceApprovalMatch"></div></div>'
+            html: '<div class="deviceApprovalWaiting"><h2 class="deviceApprovalStatus">Waiting for approval</h2><p class="deviceApprovalDetails"></p></div>'
         });
 
         const connectUrl = apiClient.getUrl('/DeviceApproval/Requests/Status?secret=' + encodeURIComponent(json.RequestSecret));
@@ -162,16 +162,14 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
         // wire its content/button after it appears rather than racing the DOM.
         const wireDialog = function () {
             if (finished) return;
-            const device = document.querySelector('#deviceApprovalAlert .deviceApprovalDevice');
-            const domain = document.querySelector('#deviceApprovalAlert .deviceApprovalDomain');
+            const details = document.querySelector('#deviceApprovalAlert .deviceApprovalDetails');
             const cancelButton = document.querySelector('#deviceApprovalAlert .btnOption[data-id="ok"]');
-            if (!device || !domain || !cancelButton) {
+            if (!details || !cancelButton) {
                 window.setTimeout(wireDialog, 0);
                 return;
             }
 
-            device.textContent = 'Device: ' + (json.DeviceName || 'Unknown device');
-            domain.textContent = 'Connection domain: ' + (json.ConnectionDomain || 'Unknown');
+            details.textContent = `${json.DeviceName || 'Unknown device'} · ${json.ConnectionDomain || 'Unknown connection'}`;
             cancelButton.textContent = 'Cancel';
             cancelButton.addEventListener('click', cancelOnClose, { once: true });
         };
@@ -180,19 +178,9 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
         const interval = setInterval(function() {
             apiClient.getJSON(connectUrl).then(async function(data) {
                 statusFailures = 0;
-                const match = document.querySelector('#deviceApprovalAlert .deviceApprovalMatch');
-                if (match && data.State === 'Selected') {
-                    while (match.firstChild) {
-                        match.removeChild(match.firstChild);
-                    }
-                    const heading = document.createElement('h3');
-                    heading.textContent = 'Selected Device';
-                    const value = document.createElement('div');
-                    value.className = 'quickConnectLoginCode';
-                    value.textContent = data.MatchingValue;
-                    const instruction = document.createElement('p');
-                    instruction.textContent = 'Confirm that this value appears on the approving device.';
-                    match.append(heading, value, instruction);
+                const status = document.querySelector('#deviceApprovalAlert .deviceApprovalStatus');
+                if (status && data.State === 'Selected') {
+                    status.textContent = 'Approval requested';
                 }
                 if (data.State !== 'Approved' || !data.AuthenticationResult) {
                     return;
@@ -207,7 +195,7 @@ function authenticateDeviceApproval(apiClient, targetUrl) {
                 }
 
                 const result = data.AuthenticationResult;
-                onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl, false, result.ServerId);
+                onLoginSuccessful(result.User, result.AccessToken, apiClient, targetUrl, false, result.ServerId);
             }, function (e) {
                 statusFailures++;
                 const status = e?.status ?? e?.statusCode;
@@ -255,26 +243,34 @@ function startRequiredTwoFactorSetup(userId, apiClient) {
     return registerTwoFactor(apiClient, userId);
 }
 
-function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSetup, serverId) {
+function onLoginSuccessful(user, accessToken, apiClient, url, requiresTwoFactorSetup, serverId) {
     const serverInfo = apiClient.serverInfo() || {};
     const resolvedServerId = serverId || serverInfo.Id || apiClient.serverId();
-    if (!resolvedServerId) {
+    if (!resolvedServerId || !user?.Id) {
         toast(globalize.translate('MessageUnableToConnectToServer'));
         return;
     }
 
+    // AuthenticationResult already contains the complete user DTO. Preserve it
+    // through the custom login flow so permission-, profile-, and library-aware
+    // components do not receive an id-only placeholder until the next reload.
+    const authenticatedUser = {
+        ...user,
+        ServerId: user.ServerId || resolvedServerId
+    };
+
     // The raw login request bypasses ApiClient.authenticateUserByName. Install
     // the token directly so connection discovery cannot discard the server id.
-    apiClient.setAuthenticationInfo(accessToken, id);
+    apiClient.setAuthenticationInfo(accessToken, authenticatedUser.Id);
     apiClient._sdk?.update({ accessToken });
     if (requiresTwoFactorSetup) {
         loading.show();
-        startRequiredTwoFactorSetup(id, apiClient).then(() => {
+        startRequiredTwoFactorSetup(authenticatedUser.Id, apiClient).then(() => {
             loading.hide();
-            setSessionAuthentication(resolvedServerId, id, accessToken);
-            return ServerConnections.onLocalUserSignedIn({ Id: id, ServerId: resolvedServerId });
+            setSessionAuthentication(resolvedServerId, authenticatedUser.Id, accessToken);
+            return ServerConnections.onLocalUserSignedIn(authenticatedUser);
         }).then(() => {
-            Events.trigger(ServerConnections, 'localusersignedin', [{ Id: id, ServerId: resolvedServerId }]);
+            Events.trigger(ServerConnections, 'localusersignedin', [authenticatedUser]);
             Dashboard.navigate(url || 'home');
         }, () => {
             loading.hide();
@@ -283,9 +279,9 @@ function onLoginSuccessful(id, accessToken, apiClient, url, requiresTwoFactorSet
         return;
     }
 
-    setSessionAuthentication(resolvedServerId, id, accessToken);
-    ServerConnections.onLocalUserSignedIn({ Id: id, ServerId: resolvedServerId }).then(() => {
-        Events.trigger(ServerConnections, 'localusersignedin', [{ Id: id, ServerId: resolvedServerId }]);
+    setSessionAuthentication(resolvedServerId, authenticatedUser.Id, accessToken);
+    ServerConnections.onLocalUserSignedIn(authenticatedUser).then(() => {
+        Events.trigger(ServerConnections, 'localusersignedin', [authenticatedUser]);
         Dashboard.navigate(url || 'home');
     }, () => {
         toast(globalize.translate('MessageUnableToConnectToServer'));

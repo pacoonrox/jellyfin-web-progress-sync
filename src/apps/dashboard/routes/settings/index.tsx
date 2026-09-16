@@ -37,8 +37,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     config.UICulture = formData.get('UICulture')?.toString();
     config.CachePath = formData.get('CachePath')?.toString();
     config.MetadataPath = formData.get('MetadataPath')?.toString();
-    config.QuickConnectAvailable = false;
-    (config as typeof config & { DeviceApprovalAvailable?: boolean }).DeviceApprovalAvailable = formData.get('DeviceApprovalAvailable')?.toString() === 'on';
+    const deviceApprovalAvailable = formData.get('DeviceApprovalAvailable')?.toString() === 'on';
+    config.QuickConnectAvailable = deviceApprovalAvailable;
+    (config as typeof config & { DeviceApprovalAvailable?: boolean }).DeviceApprovalAvailable = deviceApprovalAvailable;
     config.LibraryScanFanoutConcurrency = parseInt(formData.get('LibraryScanFanoutConcurrency')?.toString() || '0', 10);
     config.ParallelImageEncodingLimit = parseInt(formData.get('ParallelImageEncodingLimit')?.toString() || '0', 10);
 

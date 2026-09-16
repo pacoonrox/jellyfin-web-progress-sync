@@ -1,8 +1,9 @@
 /* eslint-disable react/jsx-no-bind, no-void, compat/compat */
-import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { FC, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import Page from 'components/Page';
 import Button from 'elements/emby-button/Button';
+import Input from 'elements/emby-input/Input';
 import { useApi } from 'hooks/useApi';
 
 import './quickConnect.scss';
@@ -19,7 +20,6 @@ interface PendingDevice {
     CreatedUtc: string;
     ExpiresUtc: string;
     State: 'Pending' | 'Selected';
-    MatchingValue?: string;
     TrustAllowed: boolean;
     TrustDurationDays: number;
 }
@@ -29,6 +29,8 @@ const QuickConnectPage: FC = () => {
     const [ requests, setRequests ] = useState<PendingDevice[]>([]);
     const [ selected, setSelected ] = useState<PendingDevice>();
     const [ error, setError ] = useState<string>();
+    const [ legacyCode, setLegacyCode ] = useState('');
+    const [ legacyResult, setLegacyResult ] = useState<string>();
     const [ now, setNow ] = useState(Date.now());
     const isAdministrator = user?.Policy?.IsAdministrator === true;
 
@@ -40,21 +42,31 @@ const QuickConnectPage: FC = () => {
             const data = await api.getJSON(api.getUrl('/DeviceApproval/Queue')) as PendingDevice[];
             setRequests(data);
         } catch {
-            setError('A fresh direct password and 2FA login is required before this session can approve devices.');
+            setError('Unable to load pending sign-on requests.');
         }
     }, [ api ]);
 
     useEffect(() => {
+        if (api) {
+            void api.ajax({
+                type: 'POST',
+                url: api.getUrl('/DeviceApproval/Portal/Entered')
+            }).catch(() => undefined);
+        }
         void refresh();
         const interval = window.setInterval(() => {
             setNow(Date.now());
             void refresh();
         }, 1000);
         return () => window.clearInterval(interval);
-    }, [ refresh ]);
+    }, [ api, refresh ]);
 
     useEffect(() => {
-        if (selected && !requests.some(request => request.Id === selected.Id && request.State === 'Selected')) {
+        // A queue request that started before Select can resolve afterward with
+        // the old Pending state.  The request is only gone when its id drops
+        // out of the queue; requiring Selected here dismisses a successful
+        // selection immediately when that stale snapshot wins the race.
+        if (selected && !requests.some(request => request.Id === selected.Id)) {
             setSelected(undefined);
             setError('The requesting device canceled or closed this approval request.');
         }
@@ -76,18 +88,18 @@ const QuickConnectPage: FC = () => {
             });
             setSelected(selectedDevice?.json ? await selectedDevice.json() : selectedDevice);
         } catch {
-            setError('This request was selected elsewhere, expired, or this session needs fresh direct 2FA.');
+            setError('This request was selected elsewhere, expired, or cannot be approved by this session.');
             void refresh();
         }
     }, [ api, refresh ]);
 
-    const confirm = useCallback(async (matches: boolean) => {
+    const confirm = useCallback(async (approved: boolean) => {
         if (!api || !selected) return;
         try {
             await api.ajax({
                 type: 'POST',
                 url: api.getUrl(`/DeviceApproval/Queue/${encodeURIComponent(selected.Id)}/Confirm`),
-                data: JSON.stringify({ Matches: matches, TrustDevice: matches && selected.TrustAllowed }),
+                data: JSON.stringify({ Matches: approved, TrustDevice: approved && selected.TrustAllowed }),
                 contentType: 'application/json'
             });
             setSelected(undefined);
@@ -99,6 +111,24 @@ const QuickConnectPage: FC = () => {
         }
     }, [ api, refresh, selected ]);
 
+    const authorizeLegacy = useCallback(async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!api || !event.currentTarget.checkValidity()) return;
+
+        const code = legacyCode.replace(/\s/g, '');
+        setLegacyResult(undefined);
+        try {
+            await api.ajax({
+                type: 'POST',
+                url: api.getUrl(`/QuickConnect/Authorize?code=${encodeURIComponent(code)}`)
+            });
+            setLegacyCode('');
+            setLegacyResult('Device approved.');
+        } catch {
+            setLegacyResult('Code not found or expired.');
+        }
+    }, [ api, legacyCode ]);
+
     return (
         <Page
             id='quickConnectPreferencesPage'
@@ -107,26 +137,22 @@ const QuickConnectPage: FC = () => {
             shouldAutoFocus
         >
             <div className='padded-left padded-right padded-bottom-page deviceApprovalPortal'>
-                <h2>Shared device-approval portal</h2>
-                <p className='deviceApprovalIdentity'>Approving as <strong>{accountLabel}</strong></p>
-                <p>Every authenticated user sees the same anonymous queue. If you approve a request, that device will be signed in as <strong>{accountLabel}</strong> and receive your permissions.</p>
+                <h2>Quick Sign-On</h2>
+                <p>Approve a device to sign in as <strong>{accountLabel}</strong>.</p>
                 {error && <div className='quickConnectError'>{error}</div>}
 
                 {selected && (
                     <section className='deviceApprovalConfirmation'>
-                        <h2>Selected Device</h2>
-                        <p><strong>{selected.DeviceName}</strong> · {selected.AppName} {selected.AppVersion}</p>
-                        <p>Yes will sign this device in as <strong>{accountLabel}</strong>. No other account will be used.</p>
-                        <div className='deviceApprovalMatchingValue'>{selected.MatchingValue}</div>
-                        <p>Does the requesting device display the same “Selected Device” prompt and value?</p>
+                        <h2>Approve {selected.DeviceName}?</h2>
+                        <p>{selected.AppName} {selected.AppVersion} · {selected.ConnectionDomain || 'Unknown connection'}</p>
                         {selected.TrustAllowed ? (
-                            <p>This device will be trusted automatically for {selected.TrustDurationDays || 30} days.</p>
+                            <p>Trusted for {selected.TrustDurationDays || 30} days.</p>
                         ) : (
-                            <p>Automatic trust is unavailable because this account has automatic logout enabled. An administrator may trust this device manually.</p>
+                            <p>This device will not be trusted automatically.</p>
                         )}
                         <div className='deviceApprovalActions'>
-                            <Button type='button' className='raised button-submit' title={`Yes — sign in as ${accountLabel}`} onClick={() => void confirm(true)} />
-                            <Button type='button' className='raised cancel' title='No — return to queue' onClick={() => void confirm(false)} />
+                            <Button type='button' className='raised button-submit' title='Approve' onClick={() => void confirm(true)} />
+                            <Button type='button' className='raised cancel' title='Not this device' onClick={() => void confirm(false)} />
                         </div>
                     </section>
                 )}
@@ -149,8 +175,33 @@ const QuickConnectPage: FC = () => {
                             </article>
                         );
                     })}
-                    {!requests.some(request => request.State === 'Pending') && <p>No devices are waiting for approval.</p>}
+                    {!requests.some(request => request.State === 'Pending') && <p>No devices waiting.</p>}
                 </div>
+
+                <section className='legacyQuickConnect'>
+                    <h2>Legacy Quick Connect</h2>
+                    <p>For Roku, Swiftfin, and other apps that display a six-digit code.</p>
+                    <form className='legacyQuickConnectForm' onSubmit={authorizeLegacy}>
+                        <Input
+                            id='txtLegacyQuickConnectCode'
+                            value={legacyCode}
+                            onChange={event => {
+                                setLegacyCode(event.currentTarget.value);
+                                setLegacyResult(undefined);
+                            }}
+                            label='Quick Connect code'
+                            type='text'
+                            inputMode='numeric'
+                            pattern='[0-9\s]*'
+                            minLength={6}
+                            maxLength={6}
+                            required
+                            autoComplete='off'
+                        />
+                        <Button type='submit' className='raised button-submit' title='Approve code' />
+                    </form>
+                    {legacyResult && <p className='legacyQuickConnectResult'>{legacyResult}</p>}
+                </section>
             </div>
         </Page>
     );
