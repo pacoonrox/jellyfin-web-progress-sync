@@ -72,6 +72,17 @@ function authenticateUserByName(page, apiClient, url, username, password, twoFac
         if (result.RequiresTwoFactorAuthentication) {
             page.querySelector('.twoFactorCodeContainer').classList.remove('hide');
             page.querySelector('#txtTwoFactorCode').value = '';
+            const trustContainer = page.querySelector('.trustDeviceContainer');
+            const trustCheckbox = page.querySelector('#chkTrustDevice');
+            if (result.CanTrustDevice === true) {
+                const trustDays = Number(result.TrustedDeviceDefaultDays) || 30;
+                page.querySelector('.trustDeviceLabel').textContent = `Trust this device for ${trustDays} days`;
+                trustCheckbox.checked = true;
+                trustContainer.classList.remove('hide');
+            } else {
+                trustCheckbox.checked = false;
+                trustContainer.classList.add('hide');
+            }
             page.querySelector('#txtTwoFactorCode').focus();
             toast(globalize.translate('MessageTwoFactorCodeRequired'));
             return;
@@ -294,6 +305,8 @@ function showManualForm(context, showCancel, focusPassword) {
     context.querySelector('.visualLoginForm').classList.add('hide');
     context.querySelector('.btnManual').classList.add('hide');
     context.querySelector('.twoFactorCodeContainer').classList.add('hide');
+    context.querySelector('.trustDeviceContainer').classList.add('hide');
+    context.querySelector('#chkTrustDevice').checked = false;
     context.querySelector('#txtTwoFactorCode').value = '';
 
     if (focusPassword) {
@@ -422,7 +435,8 @@ export default function (view, params) {
             view.querySelector('#txtManualName').value,
             view.querySelector('#txtManualPassword').value,
             view.querySelector('#txtTwoFactorCode').value,
-            false);
+            !view.querySelector('.trustDeviceContainer').classList.contains('hide')
+                && view.querySelector('#chkTrustDevice').checked);
         e.preventDefault();
         return false;
     });

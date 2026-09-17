@@ -3,6 +3,7 @@ import React, { FC, FormEvent, useCallback, useEffect, useMemo, useState } from 
 
 import Page from 'components/Page';
 import Button from 'elements/emby-button/Button';
+import 'elements/emby-checkbox/emby-checkbox';
 import Input from 'elements/emby-input/Input';
 import { useApi } from 'hooks/useApi';
 
@@ -28,6 +29,7 @@ const QuickConnectPage: FC = () => {
     const { __legacyApiClient__: api, user } = useApi();
     const [ requests, setRequests ] = useState<PendingDevice[]>([]);
     const [ selected, setSelected ] = useState<PendingDevice>();
+    const [ trustDevice, setTrustDevice ] = useState(false);
     const [ error, setError ] = useState<string>();
     const [ legacyCode, setLegacyCode ] = useState('');
     const [ legacyResult, setLegacyResult ] = useState<string>();
@@ -68,6 +70,7 @@ const QuickConnectPage: FC = () => {
         // selection immediately when that stale snapshot wins the race.
         if (selected && !requests.some(request => request.Id === selected.Id)) {
             setSelected(undefined);
+            setTrustDevice(false);
             setError('The requesting device canceled or closed this approval request.');
         }
     }, [ requests, selected ]);
@@ -86,7 +89,9 @@ const QuickConnectPage: FC = () => {
                 dataType: 'json',
                 headers: { accept: 'application/json' }
             });
-            setSelected(selectedDevice?.json ? await selectedDevice.json() : selectedDevice);
+            const parsedDevice = selectedDevice?.json ? await selectedDevice.json() : selectedDevice;
+            setSelected(parsedDevice);
+            setTrustDevice(parsedDevice?.TrustAllowed === true);
         } catch {
             setError('This request was selected elsewhere, expired, or cannot be approved by this session.');
             void refresh();
@@ -99,17 +104,19 @@ const QuickConnectPage: FC = () => {
             await api.ajax({
                 type: 'POST',
                 url: api.getUrl(`/DeviceApproval/Queue/${encodeURIComponent(selected.Id)}/Confirm`),
-                data: JSON.stringify({ Matches: approved, TrustDevice: approved && selected.TrustAllowed }),
+                data: JSON.stringify({ Matches: approved, TrustDevice: approved && selected.TrustAllowed && trustDevice }),
                 contentType: 'application/json'
             });
             setSelected(undefined);
+            setTrustDevice(false);
             void refresh();
         } catch {
             setError('Approval did not complete. The request may have expired or been completed elsewhere.');
             setSelected(undefined);
+            setTrustDevice(false);
             void refresh();
         }
-    }, [ api, refresh, selected ]);
+    }, [ api, refresh, selected, trustDevice ]);
 
     const authorizeLegacy = useCallback(async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -145,10 +152,13 @@ const QuickConnectPage: FC = () => {
                     <section className='deviceApprovalConfirmation'>
                         <h2>Approve {selected.DeviceName}?</h2>
                         <p>{selected.AppName} {selected.AppVersion} · {selected.ConnectionDomain || 'Unknown connection'}</p>
-                        {selected.TrustAllowed ? (
-                            <p>Trusted for {selected.TrustDurationDays || 30} days.</p>
-                        ) : (
-                            <p>This device will not be trusted automatically.</p>
+                        {selected.TrustAllowed && (
+                            <div className='checkboxContainer'>
+                                <label>
+                                    <input type='checkbox' is='emby-checkbox' checked={trustDevice} onChange={event => setTrustDevice(event.currentTarget.checked)} />
+                                    <span>Trust this device for {selected.TrustDurationDays || 30} days</span>
+                                </label>
+                            </div>
                         )}
                         <div className='deviceApprovalActions'>
                             <Button type='button' className='raised button-submit' title='Approve' onClick={() => void confirm(true)} />
