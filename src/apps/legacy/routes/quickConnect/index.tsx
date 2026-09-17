@@ -1,5 +1,5 @@
 /* eslint-disable react/jsx-no-bind, no-void, compat/compat */
-import React, { FC, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { FC, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import Page from 'components/Page';
 import Button from 'elements/emby-button/Button';
@@ -37,6 +37,29 @@ const QuickConnectPage: FC = () => {
     const isAdministrator = user?.Policy?.IsAdministrator === true;
 
     const accountLabel = useMemo(() => `${user?.Name ?? 'Unknown'} — ${isAdministrator ? 'Administrator' : 'Standard User'}`, [ isAdministrator, user?.Name ]);
+
+    // Rendering `<input is='emby-checkbox'>` as plain JSX makes React call
+    // document.createElement('input', { is: 'emby-checkbox' }) — the modern
+    // options-object form. The vendored webcomponents.js polyfill (0.7.24)
+    // only understands a raw string second argument and crashes trying to
+    // call .toLowerCase() on that object. Every other checkbox in this app
+    // avoids that by injecting the "is" markup via dangerouslySetInnerHTML
+    // so the browser's native HTML parser instantiates it instead; do the
+    // same here and wire the controlled state up through a ref.
+    const trustCheckboxRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const input = trustCheckboxRef.current?.querySelector('input');
+        if (!input) return undefined;
+        const onChange = () => setTrustDevice(input.checked);
+        input.addEventListener('change', onChange);
+        return () => input.removeEventListener('change', onChange);
+    }, [ selected?.Id ]);
+
+    useEffect(() => {
+        const input = trustCheckboxRef.current?.querySelector('input');
+        if (input) input.checked = trustDevice;
+    }, [ trustDevice, selected?.Id ]);
 
     const refresh = useCallback(async () => {
         if (!api) return;
@@ -153,12 +176,16 @@ const QuickConnectPage: FC = () => {
                         <h2>Approve {selected.DeviceName}?</h2>
                         <p>{selected.AppName} {selected.AppVersion} · {selected.ConnectionDomain || 'Unknown connection'}</p>
                         {selected.TrustAllowed && (
-                            <div className='checkboxContainer'>
-                                <label>
-                                    <input type='checkbox' is='emby-checkbox' checked={trustDevice} onChange={event => setTrustDevice(event.currentTarget.checked)} />
-                                    <span>Trust this device for {selected.TrustDurationDays || 30} days</span>
-                                </label>
-                            </div>
+                            <div
+                                ref={trustCheckboxRef}
+                                className='checkboxContainer'
+                                dangerouslySetInnerHTML={{
+                                    __html: `<label>
+                                        <input is="emby-checkbox" type="checkbox" />
+                                        <span>Trust this device for ${selected.TrustDurationDays || 30} days</span>
+                                    </label>`
+                                }}
+                            />
                         )}
                         <div className='deviceApprovalActions'>
                             <Button type='button' className='raised button-submit' title='Approve' onClick={() => void confirm(true)} />
