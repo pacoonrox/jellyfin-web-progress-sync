@@ -7,6 +7,7 @@ import MediaInfoItem from './MediaInfoItem';
 import StarIcons from './StarIcons';
 import CaptionMediaInfo from './CaptionMediaInfo';
 import CriticRatingMediaInfo from './CriticRatingMediaInfo';
+import UserRatingMediaInfo from './UserRatingMediaInfo';
 import EndsAt from './EndsAt';
 
 import { ItemMediaKind } from 'types/base/models/item-media-kind';
@@ -21,6 +22,7 @@ interface PrimaryMediaInfoProps extends PrimaryInfoOpts {
     showStarRatingInfo?: boolean;
     showCaptionIndicatorInfo?: boolean;
     showCriticRatingInfo?: boolean;
+    showUserRatingInfo?: boolean;
     showEndsAtInfo?: boolean;
     getMissingIndicator?: () => React.JSX.Element | null;
 }
@@ -46,6 +48,7 @@ const PrimaryMediaInfo: FC<PrimaryMediaInfoProps> = ({
     showStarRatingInfo = false,
     showCaptionIndicatorInfo = false,
     showCriticRatingInfo = false,
+    showUserRatingInfo = false,
     showEndsAtInfo = false,
     getMissingIndicator
 }) => {
@@ -67,6 +70,7 @@ const PrimaryMediaInfo: FC<PrimaryMediaInfoProps> = ({
         showPhotoSizeInfo
     });
     const {
+        Id,
         StartDate,
         HasSubtitles,
         MediaType,
@@ -101,6 +105,13 @@ const PrimaryMediaInfo: FC<PrimaryMediaInfoProps> = ({
                 <CriticRatingMediaInfo
                     className={infoclass}
                     criticRating={CriticRating}
+                />
+            )}
+
+            {showUserRatingInfo && Id && (
+                <UserRatingMediaInfo
+                    className={infoclass}
+                    itemId={Id}
                 />
             )}
 

@@ -31,6 +31,13 @@ const SERIES_MANAGER_TYPES = [
     BaseItemKind.Episode
 ];
 
+const RATABLE_TYPES = [
+    BaseItemKind.Movie,
+    BaseItemKind.Series,
+    BaseItemKind.Season,
+    BaseItemKind.Episode
+];
+
 function getDeleteLabel(type) {
     switch (type) {
         case BaseItemKind.Series:
@@ -321,6 +328,14 @@ export async function getCommands(options) {
         });
     }
 
+    if (RATABLE_TYPES.includes(item.Type)) {
+        commands.push({
+            name: 'Rate & Review',
+            id: 'ratereview',
+            icon: 'rate_review'
+        });
+    }
+
     if (item.Type === BaseItemKind.Movie && user.Policy.IsAdministrator) {
         commands.push({
             name: 'Open in Radarr',
@@ -426,6 +441,54 @@ function getResolveFunction(resolve, commandId, changed, deleted, itemId) {
             itemId: itemId
         });
     };
+}
+
+function getMyReview(apiClient, itemId) {
+    return apiClient.getJSON(apiClient.getUrl(`Reviews/Items/${itemId}/Mine`)).catch(() => null);
+}
+
+function saveReview(apiClient, itemId, rating, comment, containsSpoilers) {
+    return apiClient.ajax({
+        type: 'POST',
+        url: apiClient.getUrl(`Reviews/Items/${itemId}`),
+        data: JSON.stringify({
+            Rating: rating,
+            Comment: comment,
+            ContainsSpoilers: containsSpoilers
+        }),
+        contentType: 'application/json',
+        dataType: 'json'
+    });
+}
+
+function rateAndReview(apiClient, item) {
+    return getMyReview(apiClient, item.Id).then(existing => {
+        return import('./prompt/prompt').then(({ default: prompt }) => {
+            return prompt({
+                title: `Rate ${item.Name}`,
+                label: 'Rating (1-10)',
+                value: existing?.Rating ? String(existing.Rating) : '',
+                confirmText: 'Next'
+            }).then(ratingValue => {
+                const rating = ratingValue ? Number.parseInt(ratingValue, 10) : null;
+                if (rating !== null && (Number.isNaN(rating) || rating < 1 || rating > 10)) {
+                    toast('Rating must be between 1 and 10');
+                    return Promise.reject();
+                }
+
+                return prompt({
+                    title: `Review ${item.Name}`,
+                    label: 'Comment (optional)',
+                    value: existing?.Comment || '',
+                    confirmText: 'Save'
+                }).catch(() => '').then(comment => {
+                    return saveReview(apiClient, item.Id, rating, comment, false).then(() => {
+                        toast('Review saved');
+                    });
+                });
+            });
+        });
+    });
 }
 
 function getProgressSyncSeries(apiClient, seriesId) {
@@ -787,6 +850,9 @@ function executeCommand(item, id, options) {
                 break;
             case 'syncprogresstouser':
                 syncProgressToUser(apiClient, item, options.user).then(getResolveFunction(resolve, id, true), getResolveFunction(resolve, id));
+                break;
+            case 'ratereview':
+                rateAndReview(apiClient, item).then(getResolveFunction(resolve, id, true), getResolveFunction(resolve, id));
                 break;
             case 'openradarr':
                 openExternalManager(apiClient, item, 'radarr').then(getResolveFunction(resolve, id), getResolveFunction(resolve, id));

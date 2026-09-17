@@ -40,6 +40,7 @@ import * as userSettings from 'scripts/settings/userSettings';
 import Dashboard from 'utils/dashboard';
 import Events from 'utils/events';
 import { getItemBackdropImageUrl } from 'utils/jellyfin-apiclient/backdropImage';
+import { getSummary } from 'apis/reviewsApi';
 import { OutboundWebSocketMessageType } from '@jellyfin/sdk/lib/websocket';
 
 import 'elements/emby-itemscontainer/emby-itemscontainer';
@@ -998,6 +999,24 @@ function renderTagline(page, item) {
     }
 }
 
+function renderUserRatingInfo(page, item, apiClient) {
+    if (!item.Id) {
+        return;
+    }
+
+    const api = ServerConnections.getApi(apiClient.serverId());
+    if (!api) {
+        return;
+    }
+
+    getSummary(api, item.Id).then(summary => {
+        item.UserRatingSummary = summary;
+        renderMiscInfo(page, item);
+    }).catch(() => {
+        // No reviews yet, or the request failed; leave the badge hidden.
+    });
+}
+
 function renderDetails(page, instance, item, apiClient, context) {
     const itemDetailsGroup = page.querySelector('.itemDetailsGroup');
 
@@ -1030,6 +1049,7 @@ function renderDetails(page, instance, item, apiClient, context) {
     renderTagline(page, item);
     renderOverview(page, item);
     renderMiscInfo(page, item);
+    renderUserRatingInfo(page, item, apiClient);
     reloadUserDataButtons(page, item);
     renderLyricsContainer(page, item, apiClient);
 

@@ -307,6 +307,10 @@ export function getMediaInfoHtml(item, options = {}) {
         }
     }
 
+    if (options.userRating !== false) {
+        html += getUserRatingHtml(item);
+    }
+
     if (options.endsAt !== false) {
         const endsAt = getEndsAt(item);
         if (endsAt) {
@@ -365,6 +369,31 @@ function getStarIconsHtml(item) {
         html += '</div>';
     }
 
+    return html;
+}
+
+/**
+ * Renders a badge for the aggregate user rating/review summary for an item.
+ * Expects `item.UserRatingSummary` to have been populated ahead of time
+ * (e.g. via reviewsApi.getSummaries), since it is not part of the base item DTO.
+ * @param {Object} item - The item.
+ * @returns {string} The HTML.
+ */
+function getUserRatingHtml(item) {
+    const summary = item.UserRatingSummary;
+    if (!summary || !summary.AverageRating) {
+        return '';
+    }
+
+    let html = '<div class="userRatingContainer mediaInfoItem" title="';
+    html += `${summary.RatingCount} rating${summary.RatingCount === 1 ? '' : 's'}">`;
+    html += '<span class="material-icons userRatingIcon rate_review" aria-hidden="true"></span>';
+    html += summary.AverageRating.toFixed(1);
+    if (summary.RatingCount > 0) {
+        html += `<span class="userRatingCount"> (${summary.RatingCount})</span>`;
+    }
+
+    html += '</div>';
     return html;
 }
 

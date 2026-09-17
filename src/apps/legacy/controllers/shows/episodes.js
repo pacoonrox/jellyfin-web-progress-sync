@@ -8,8 +8,26 @@ import globalize from 'lib/globalize';
 import Dashboard from 'utils/dashboard';
 import Events from 'utils/events';
 import { setFilterStatus } from 'components/filterdialog/filterIndicator';
+import { ServerConnections } from 'lib/jellyfin-apiclient';
+import { getSummaries } from 'apis/reviewsApi';
 
 import 'elements/emby-itemscontainer/emby-itemscontainer';
+
+function applyUserRatingSummaries(items) {
+    const apiClient = ServerConnections.currentApiClient();
+    const api = apiClient && ServerConnections.getApi(apiClient.serverId());
+    if (!api) {
+        return Promise.resolve(items);
+    }
+
+    const itemIds = items.map(i => i.Id).filter(Boolean);
+    return getSummaries(api, itemIds).then(summaries => {
+        items.forEach(item => {
+            item.UserRatingSummary = summaries[item.Id];
+        });
+        return items;
+    }).catch(() => items);
+}
 
 export default function (view, params, tabContent) {
     function getPageData() {
@@ -72,7 +90,22 @@ export default function (view, params, tabContent) {
         const query = getQuery();
         setFilterStatus(page, query);
 
-        ApiClient.getItems(Dashboard.getCurrentUserId(), query).then(function (result) {
+        const isUserRatingSort = query.SortBy === 'UserRating';
+        const serverQuery = isUserRatingSort ? { ...query, SortBy: 'SeriesSortName,SortName' } : query;
+
+        ApiClient.getItems(Dashboard.getCurrentUserId(), serverQuery).then(function (result) {
+            return applyUserRatingSummaries(result.Items).then(() => {
+                if (query.SortBy === 'UserRating') {
+                    result.Items.sort((a, b) => {
+                        const ar = a.UserRatingSummary?.AverageRating ?? -1;
+                        const br = b.UserRatingSummary?.AverageRating ?? -1;
+                        return br - ar;
+                    });
+                }
+
+                return result;
+            });
+        }).then(function (result) {
             function onNextPageClick() {
                 if (isLoading) {
                     return;
@@ -200,6 +233,9 @@ export default function (view, params, tabContent) {
                 }, {
                     name: globalize.translate('OptionTvdbRating'),
                     id: 'CommunityRating,SeriesSortName,SortName'
+                }, {
+                    name: 'User Rating',
+                    id: 'UserRating'
                 }, {
                     name: globalize.translate('OptionDateAdded'),
                     id: 'DateCreated,SeriesSortName,SortName'
