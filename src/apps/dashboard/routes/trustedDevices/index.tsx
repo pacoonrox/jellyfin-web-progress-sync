@@ -98,6 +98,12 @@ const TrustedDevicesPage: FC = () => {
         void load();
     }, [ api, load ]);
 
+    const logout = useCallback(async (path: string, prompt: string) => {
+        if (!api || !window.confirm(prompt)) return;
+        await api.ajax({ type: 'POST', url: api.getUrl(path) });
+        void load();
+    }, [ api, load ]);
+
     const neverTrust = useCallback(async (device: TrustedDevice) => {
         if (!api || !window.confirm(`Never trust ${device.FriendlyName}? Future automatic trust attempts for this installation will be blocked.`)) return;
         await api.ajax({ type: 'POST', url: api.getUrl(`/DeviceApproval/Admin/TrustedDevices/${device.Id}/Never`) });
@@ -128,6 +134,7 @@ const TrustedDevicesPage: FC = () => {
                             <option value=''>All states</option><option>Observed</option><option>Trusted</option><option>Expired</option><option>Revoked</option><option>Never</option>
                         </select>
                         <Button type='button' className='raised cancel' title='Revoke all trust' onClick={() => void remove('/DeviceApproval/Admin/TrustedDevices', 'Revoke every trusted-device credential?')} />
+                        <Button type='button' className='raised cancel' title='Log out every user' onClick={() => void logout('/DeviceApproval/Admin/Users/Logout', 'Log out every user on every device? All trusted-device credentials will also be revoked.')} />
                     </div>
 
                     {grouped.map(([ key, records ]) => {
@@ -136,7 +143,7 @@ const TrustedDevicesPage: FC = () => {
                         return (
                             <details key={key} className='trustedDeviceGroup' open>
                                 <summary><strong>{username}</strong><span>{list.length} device{list.length === 1 ? '' : 's'}</span></summary>
-                                <header><Button type='button' className='raised cancel' title='Revoke user trust' onClick={() => void remove(`/DeviceApproval/Admin/Users/${userId}/TrustedDevices`, `Revoke every trusted device for ${username}?`)} /></header>
+                                <header><Button type='button' className='raised cancel' title='Revoke user trust' onClick={() => void remove(`/DeviceApproval/Admin/Users/${userId}/TrustedDevices`, `Revoke every trusted device for ${username}?`)} /><Button type='button' className='raised cancel' title='Log out all devices' onClick={() => void logout(`/DeviceApproval/Admin/Users/${userId}/Logout`, `Log out ${username} on every device? Their trusted-device credentials will also be revoked.`)} /></header>
                                 <div className='trustedDeviceTableWrap'><table><thead><tr><th>Device</th><th>Client / platform</th><th>First / last seen</th><th>Trust</th><th>Network</th><th>Actions</th></tr></thead>
                                     <tbody>{list.map(device => <tr key={device.Id}>
                                         <td>{device.FriendlyName}</td>
@@ -144,7 +151,7 @@ const TrustedDevicesPage: FC = () => {
                                         <td>{new Date(device.FirstSeenUtc).toLocaleString()}<br />{new Date(device.LastSeenUtc).toLocaleString()}</td>
                                         <td>{device.State}{device.RequiresFreshTwoFactor ? ' · Fresh 2FA required' : ''} · {device.Source}<br />Issued: {device.IssuedUtc ? new Date(device.IssuedUtc).toLocaleString() : 'Never'}<br />Expires: {device.ExpiresUtc ? new Date(device.ExpiresUtc).toLocaleString() : '—'}</td>
                                         <td>{device.LastIpAddress || '—'}</td>
-                                        <td><Button type='button' className='raised' title={device.State === 'Trusted' ? 'Rename / edit expiry' : 'Trust this device'} onClick={() => void update(device, device.State !== 'Trusted')} /><Button type='button' className='raised cancel' title='Revoke' onClick={() => void remove(`/DeviceApproval/Admin/TrustedDevices/${device.Id}`, `Revoke ${device.FriendlyName}?`)} />{device.State !== 'Never' && <Button type='button' className='raised cancel' title='Never trust' onClick={() => void neverTrust(device)} />}<Button type='button' className='raised cancel' title='Prune device' onClick={() => void remove(`/DeviceApproval/Admin/TrustedDevices/${device.Id}/Prune`, `Forget ${device.FriendlyName} permanently?`)} /></td>
+                                        <td><Button type='button' className='raised' title={device.State === 'Trusted' ? 'Rename / edit expiry' : 'Trust this device'} onClick={() => void update(device, device.State !== 'Trusted')} /><Button type='button' className='raised cancel' title='Log out device' onClick={() => void logout(`/DeviceApproval/Admin/TrustedDevices/${device.Id}/Logout`, `Log out ${device.FriendlyName}? A fresh 2FA check will be required before this device can use trusted sign-in again.`)} /><Button type='button' className='raised cancel' title='Revoke' onClick={() => void remove(`/DeviceApproval/Admin/TrustedDevices/${device.Id}`, `Revoke ${device.FriendlyName}?`)} />{device.State !== 'Never' && <Button type='button' className='raised cancel' title='Never trust' onClick={() => void neverTrust(device)} />}<Button type='button' className='raised cancel' title='Prune device' onClick={() => void remove(`/DeviceApproval/Admin/TrustedDevices/${device.Id}/Prune`, `Forget ${device.FriendlyName} permanently?`)} /></td>
                                     </tr>)}</tbody>
                                 </table></div>
                             </details>
