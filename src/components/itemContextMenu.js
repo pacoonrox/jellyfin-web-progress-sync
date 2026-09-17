@@ -466,11 +466,13 @@ function rateAndReview(apiClient, item) {
         return import('./prompt/prompt').then(({ default: prompt }) => {
             return prompt({
                 title: `Rate ${item.Name}`,
-                label: 'Rating (1-10)',
+                label: 'Rating (1-10, decimals allowed)',
                 value: existing?.Rating ? String(existing.Rating) : '',
                 confirmText: 'Next'
             }).then(ratingValue => {
-                const rating = ratingValue ? Number.parseInt(ratingValue, 10) : null;
+                const parsedRating = ratingValue ? Number.parseFloat(ratingValue) : null;
+                // Truncate (not round) to 2 decimal places, matching the server's storage precision.
+                const rating = parsedRating !== null ? Math.trunc(parsedRating * 100) / 100 : null;
                 if (rating !== null && (Number.isNaN(rating) || rating < 1 || rating > 10)) {
                     toast('Rating must be between 1 and 10');
                     return Promise.reject();

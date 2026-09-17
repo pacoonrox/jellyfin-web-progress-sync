@@ -1,4 +1,4 @@
-import type { Api } from '@jellyfin/sdk';
+import { ServerConnections } from 'lib/jellyfin-apiclient';
 
 export interface ReviewDto {
     ItemId: string;
@@ -24,70 +24,89 @@ export interface UpdateReviewRequest {
     ContainsSpoilers?: boolean;
 }
 
-function reviewsBasePath(api: Api) {
-    return `${api.basePath}/Reviews`;
+/**
+ * The Reviews endpoints are called through the legacy ApiClient (rather than the
+ * @jellyfin/sdk Api instance) because that Api instance is created once, very early
+ * in the connection lifecycle, with whatever access token exists at that moment -
+ * if the user authenticates afterwards (e.g. no persisted token, so a reconnect is
+ * required), it's never refreshed and silently sends unauthenticated requests for
+ * the rest of the session. The legacy ApiClient always reads the current token.
+ */
+function getApiClient() {
+    const apiClient = ServerConnections.currentApiClient();
+    if (!apiClient) {
+        throw new Error('No active Jellyfin connection');
+    }
+
+    return apiClient;
 }
 
-export async function getReviews(api: Api, itemId: string) {
-    const response = await api.axiosInstance.get<ReviewDto[]>(
-        `${reviewsBasePath(api)}/Items/${itemId}`
-    );
-    return response.data;
+export async function getReviews(itemId: string): Promise<ReviewDto[]> {
+    const apiClient = getApiClient();
+    return apiClient.getJSON(apiClient.getUrl(`Reviews/Items/${itemId}`));
 }
 
-export async function getSummary(api: Api, itemId: string) {
-    const response = await api.axiosInstance.get<ItemRatingSummaryDto>(
-        `${reviewsBasePath(api)}/Items/${itemId}/Summary`
-    );
-    return response.data;
+export async function getSummary(itemId: string): Promise<ItemRatingSummaryDto> {
+    const apiClient = getApiClient();
+    return apiClient.getJSON(apiClient.getUrl(`Reviews/Items/${itemId}/Summary`));
 }
 
-export async function getSummaries(api: Api, itemIds: string[]) {
+export async function getSummaries(itemIds: string[]): Promise<Record<string, ItemRatingSummaryDto>> {
     if (itemIds.length === 0) {
         return {};
     }
 
-    const response = await api.axiosInstance.get<Record<string, ItemRatingSummaryDto>>(
-        `${reviewsBasePath(api)}/Summaries`,
-        { params: { itemIds: itemIds.join(',') } }
-    );
-    return response.data;
+    const apiClient = getApiClient();
+    return apiClient.getJSON(apiClient.getUrl('Reviews/Summaries', { itemIds: itemIds.join(',') }));
 }
 
-export async function getTopRated(api: Api, minRatingCount = 1, limit = 50) {
-    const response = await api.axiosInstance.get<ItemRatingSummaryDto[]>(
-        `${reviewsBasePath(api)}/TopRated`,
-        { params: { minRatingCount, limit } }
-    );
-    return response.data;
+export async function getTopRated(minRatingCount = 1, limit = 50): Promise<ItemRatingSummaryDto[]> {
+    const apiClient = getApiClient();
+    return apiClient.getJSON(apiClient.getUrl('Reviews/TopRated', { minRatingCount, limit }));
 }
 
-export async function getMyReview(api: Api, itemId: string) {
+export async function getMyReview(itemId: string): Promise<ReviewDto | undefined> {
+    const apiClient = getApiClient();
     try {
-        const response = await api.axiosInstance.get<ReviewDto>(
-            `${reviewsBasePath(api)}/Items/${itemId}/Mine`
-        );
-        return response.data;
+        return await apiClient.getJSON(apiClient.getUrl(`Reviews/Items/${itemId}/Mine`));
     } catch {
         return undefined;
     }
 }
 
-export async function getMyReviews(api: Api) {
-    const response = await api.axiosInstance.get<ReviewDto[]>(
-        `${reviewsBasePath(api)}/Mine`
-    );
-    return response.data;
+export async function getMyReviews(): Promise<ReviewDto[]> {
+    const apiClient = getApiClient();
+    return apiClient.getJSON(apiClient.getUrl('Reviews/Mine'));
 }
 
-export async function upsertReview(api: Api, itemId: string, request: UpdateReviewRequest) {
-    const response = await api.axiosInstance.post<ReviewDto>(
-        `${reviewsBasePath(api)}/Items/${itemId}`,
-        request
-    );
-    return response.data;
+export async function getAllReviews(): Promise<ReviewDto[]> {
+    const apiClient = getApiClient();
+    return apiClient.getJSON(apiClient.getUrl('Reviews/All'));
 }
 
-export async function deleteReview(api: Api, itemId: string) {
-    await api.axiosInstance.delete(`${reviewsBasePath(api)}/Items/${itemId}`);
+export async function upsertReview(itemId: string, request: UpdateReviewRequest): Promise<ReviewDto> {
+    const apiClient = getApiClient();
+    return apiClient.ajax({
+        type: 'POST',
+        url: apiClient.getUrl(`Reviews/Items/${itemId}`),
+        data: JSON.stringify(request),
+        contentType: 'application/json',
+        dataType: 'json'
+    });
+}
+
+export async function deleteReview(itemId: string): Promise<void> {
+    const apiClient = getApiClient();
+    await apiClient.ajax({
+        type: 'DELETE',
+        url: apiClient.getUrl(`Reviews/Items/${itemId}`)
+    });
+}
+
+export async function deleteReviewAsAdmin(itemId: string, userId: string): Promise<void> {
+    const apiClient = getApiClient();
+    await apiClient.ajax({
+        type: 'DELETE',
+        url: apiClient.getUrl(`Reviews/Items/${itemId}/Users/${userId}`)
+    });
 }

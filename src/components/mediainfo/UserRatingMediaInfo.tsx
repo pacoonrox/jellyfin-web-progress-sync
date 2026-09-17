@@ -26,7 +26,7 @@ const UserRatingMediaInfo: FC<UserRatingMediaInfoProps> = ({ className, itemId }
     return (
         <Box className={cssClass} title={`${summary.RatingCount} rating${summary.RatingCount === 1 ? '' : 's'}`}>
             <RateReviewIcon fontSize={'small'} />
-            {summary.AverageRating.toFixed(1)}
+            {summary.AverageRating.toFixed(2)}
             {summary.RatingCount > 0 && (
                 <Box component={'span'} className={'userRatingCount'}>
                     {` (${summary.RatingCount})`}

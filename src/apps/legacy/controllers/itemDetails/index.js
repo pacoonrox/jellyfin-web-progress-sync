@@ -1000,16 +1000,11 @@ function renderTagline(page, item) {
 }
 
 function renderUserRatingInfo(page, item, apiClient) {
-    if (!item.Id) {
+    if (!item.Id || !apiClient) {
         return;
     }
 
-    const api = ServerConnections.getApi(apiClient.serverId());
-    if (!api) {
-        return;
-    }
-
-    getSummary(api, item.Id).then(summary => {
+    getSummary(item.Id).then(summary => {
         item.UserRatingSummary = summary;
         renderMiscInfo(page, item);
     }).catch(() => {

@@ -15,13 +15,12 @@ import 'elements/emby-itemscontainer/emby-itemscontainer';
 
 function applyUserRatingSummaries(items) {
     const apiClient = ServerConnections.currentApiClient();
-    const api = apiClient && ServerConnections.getApi(apiClient.serverId());
-    if (!api) {
+    if (!apiClient) {
         return Promise.resolve(items);
     }
 
     const itemIds = items.map(i => i.Id).filter(Boolean);
-    return getSummaries(api, itemIds).then(summaries => {
+    return getSummaries(itemIds).then(summaries => {
         items.forEach(item => {
             item.UserRatingSummary = summaries[item.Id];
         });

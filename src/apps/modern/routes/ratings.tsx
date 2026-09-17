@@ -14,7 +14,9 @@ import { useApi } from 'hooks/useApi';
 import {
     useGetTopRatedItems,
     useGetMyReviews,
-    useDeleteReview
+    useGetAllReviews,
+    useDeleteReview,
+    useDeleteReviewAsAdmin
 } from 'hooks/api/reviewsHooks/useReviews';
 import type { ReviewDto } from 'apis/reviewsApi';
 
@@ -68,7 +70,44 @@ const ReviewRow: FC<{ review: ReviewDto; item?: BaseItemDto }> = ({ review, item
             >
                 <Typography variant='subtitle1'>{item?.Name ?? review.ItemId}</Typography>
                 {review.Rating != null && (
-                    <Rating value={review.Rating / 2} precision={0.5} readOnly size='small' />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Rating value={review.Rating / 2} precision={0.5} readOnly size='small' />
+                        <Typography variant='caption' color='text.secondary'>{review.Rating.toFixed(2)}/10</Typography>
+                    </Box>
+                )}
+                {review.Comment && (
+                    <Typography variant='body2' color='text.secondary'>{review.Comment}</Typography>
+                )}
+            </Box>
+            <IconButton
+                // eslint-disable-next-line react/jsx-no-bind
+                onClick={() => deleteReview()}
+                disabled={isPending}
+                aria-label='Delete review'
+            >
+                <DeleteIcon />
+            </IconButton>
+        </Box>
+    );
+};
+
+const AdminReviewRow: FC<{ review: ReviewDto; item?: BaseItemDto }> = ({ review, item }) => {
+    const { mutate: deleteReview, isPending } = useDeleteReviewAsAdmin(review.ItemId, review.UserId);
+
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <Box
+                sx={{ flexGrow: 1, cursor: item ? 'pointer' : 'default' }}
+                // eslint-disable-next-line react/jsx-no-bind
+                onClick={() => openItem(item)}
+            >
+                <Typography variant='subtitle1'>{item?.Name ?? review.ItemId}</Typography>
+                <Typography variant='body2' color='text.secondary'>{review.UserName ?? review.UserId}</Typography>
+                {review.Rating != null && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Rating value={review.Rating / 2} precision={0.5} readOnly size='small' />
+                        <Typography variant='caption' color='text.secondary'>{review.Rating.toFixed(2)}/10</Typography>
+                    </Box>
                 )}
                 {review.Comment && (
                     <Typography variant='body2' color='text.secondary'>{review.Comment}</Typography>
@@ -99,7 +138,10 @@ const TopRatedRow: FC<{ itemId: string; averageRating?: number; ratingCount: num
         >
             <Typography variant='subtitle1' sx={{ flexGrow: 1 }}>{item?.Name ?? 'Unknown item'}</Typography>
             {averageRating != null && (
-                <Rating value={averageRating / 2} precision={0.5} readOnly size='small' />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Rating value={averageRating / 2} precision={0.5} readOnly size='small' />
+                    <Typography variant='caption' color='text.secondary'>{averageRating.toFixed(2)}/10</Typography>
+                </Box>
             )}
             <Typography variant='body2' color='text.secondary'>
                 {ratingCount} rating{ratingCount === 1 ? '' : 's'}
@@ -109,8 +151,12 @@ const TopRatedRow: FC<{ itemId: string; averageRating?: number; ratingCount: num
 };
 
 const RatingsPage = () => {
+    const { user } = useApi();
+    const isAdmin = !!user?.Policy?.IsAdministrator;
+
     const { data: topRated, isLoading: isTopRatedLoading } = useGetTopRatedItems(1, 50);
     const { data: myReviews, isLoading: isMyReviewsLoading } = useGetMyReviews();
+    const { data: allReviews, isLoading: isAllReviewsLoading } = useGetAllReviews();
 
     const allItemIds = useMemo(() => {
         const ids = new Set<string>();
@@ -120,12 +166,15 @@ const RatingsPage = () => {
         myReviews?.forEach(r => {
             ids.add(r.ItemId);
         });
+        allReviews?.forEach(r => {
+            ids.add(r.ItemId);
+        });
         return Array.from(ids);
-    }, [ topRated, myReviews ]);
+    }, [ topRated, myReviews, allReviews ]);
 
     const itemsById = useItemsByIds(allItemIds);
 
-    const isLoading = isTopRatedLoading || isMyReviewsLoading;
+    const isLoading = isTopRatedLoading || isMyReviewsLoading || (isAdmin && isAllReviewsLoading);
 
     return (
         <Page
@@ -166,6 +215,24 @@ const RatingsPage = () => {
                                 item={itemsById[summary.ItemId]}
                             />
                         ))}
+
+                        {isAdmin && (
+                            <>
+                                <Typography variant='h2' sx={{ fontSize: '1.2em', mt: 4, mb: 1 }}>All Reviews (Admin)</Typography>
+                                {(!allReviews || allReviews.length === 0) && (
+                                    <Typography variant='body2' color='text.secondary'>
+                                        No one has rated or reviewed anything yet.
+                                    </Typography>
+                                )}
+                                {allReviews?.map(review => (
+                                    <AdminReviewRow
+                                        key={`${review.ItemId}-${review.UserId}`}
+                                        review={review}
+                                        item={itemsById[review.ItemId]}
+                                    />
+                                ))}
+                            </>
+                        )}
                     </>
                 )}
             </Box>
