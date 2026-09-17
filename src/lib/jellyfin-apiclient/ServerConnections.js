@@ -31,6 +31,24 @@ const getMaxBandwidth = () => {
     return null;
 };
 
+// Mirrors the @jellyfin/sdk response interceptor in utils/jellyfin-apiclient/compat.ts.
+// That one only covers requests made through the SDK's Api instance; a large part of
+// this app (legacy controllers, dashboard pages) still calls apiClient.ajax()/getJSON()
+// directly, which never goes through the SDK at all. Without this, a session dying
+// while one of those pages is open (idle logout, an administrator's device logout,
+// etc) just fails every request forever with no prompt to sign back in.
+let handlingExpiredSession = false;
+
+function handleExpiredSession(apiClient) {
+    if (handlingExpiredSession) {
+        return;
+    }
+
+    handlingExpiredSession = true;
+    apiClient.setAuthenticationInfo(null, null);
+    window.location.reload();
+}
+
 class ServerConnections extends ConnectionManager {
     firstConnection = false;
 
@@ -57,6 +75,17 @@ class ServerConnections extends ConnectionManager {
             // Calling getApi will ensure apiClient._sdk is initialized.
             this.getApi(apiClient.serverId());
             apiClient.subscribe = apiClient._sdk.subscribe.bind(apiClient._sdk);
+
+            Events.on(apiClient, 'requestfail', (_evt, info) => {
+                // A 401 on a request that carried no token just means the caller
+                // isn't authenticated yet (e.g. a failed login attempt, which
+                // must show its own error instead of silently reloading here).
+                // Only a 401 while the client believes it holds a valid token
+                // means that token was actually revoked out from under it.
+                if (info?.status === 401 && apiClient.accessToken()) {
+                    handleExpiredSession(apiClient);
+                }
+            });
         });
     }
 

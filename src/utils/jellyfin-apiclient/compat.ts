@@ -54,7 +54,9 @@ export const toApi = (apiClient: ApiClient): Api => {
             // 401 means the token itself is no longer valid; 403 can mean a
             // perfectly valid session just lacks permission for one endpoint
             // (e.g. a non-admin call), which must not force a global logout.
-            if (error?.response?.status === 401) {
+            // Only treat it as an expired session if the client believed it
+            // had a token in the first place (excludes pre-auth calls).
+            if (error?.response?.status === 401 && apiClient.accessToken()) {
                 handleExpiredSession(apiClient);
             }
 
