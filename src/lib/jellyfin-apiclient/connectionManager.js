@@ -608,12 +608,29 @@ export default class ConnectionManager {
                 events.trigger(self, 'connected', [result]);
             };
 
+            // A stored access token only means credentials were saved locally; the
+            // server may have since revoked them (device logout, idle expiry, etc).
+            // If getCurrentUser() rejects with 401/403, the token is no longer valid -
+            // clear it and downgrade the reported state so callers (e.g.
+            // ConnectionRequired) bounce to the login page instead of rendering the
+            // app shell with a dead token. Other failures (network blips, 5xx) are
+            // left alone so a transient error doesn't force a false logout.
+            const handleInvalidSession = function (err) {
+                const status = err && err.status;
+                if (status === 401 || status === 403) {
+                    result.ApiClient.setAuthenticationInfo(null, null);
+                    result.State = ConnectionState.ServerSignIn;
+                }
+
+                resolveActions();
+            };
+
             if (result.State === ConnectionState.SignedIn) {
                 afterConnected(result.ApiClient, options);
 
                 result.ApiClient.getCurrentUser().then((user) => {
                     onLocalUserSignIn(server, serverUrl, user).then(resolveActions, resolveActions);
-                }, resolveActions);
+                }, handleInvalidSession);
             } else {
                 resolveActions();
             }
