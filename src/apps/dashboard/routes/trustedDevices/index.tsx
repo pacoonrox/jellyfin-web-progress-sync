@@ -114,7 +114,7 @@ const TrustedDevicesPage: FC = () => {
         <Page id='trustedDevicesPage' title='Trusted devices' className='mainAnimatedPage type-interior'>
             <div className='content-primary trustedDevicesPage'>
                 <h2>Trusted-device policy</h2>
-                <p>Trust bypasses only a user’s 2FA challenge after password verification. It does not change logout, session expiry, account state, or permissions.</p>
+                <p>Trust bypasses a user’s 2FA challenge after password verification. It does not change account state or permissions. Administrator-granted trust also exempts that one device from the user’s automatic idle logout policy; a user’s own self-granted trust does not (and a user with idle logout enabled cannot self-trust a device at all).</p>
                 <form onSubmit={event => void savePolicy(event)} className='trustedDevicePolicy'>
                     <label><input type='checkbox' checked={enabled} onChange={event => setEnabled(event.currentTarget.checked)} /> Enable device approval and trusted devices</label>
                     <label>Default duration (days)<input type='number' min='1' max='3650' value={defaultDays} onChange={event => setDefaultDays(Number(event.currentTarget.value))} /></label>
