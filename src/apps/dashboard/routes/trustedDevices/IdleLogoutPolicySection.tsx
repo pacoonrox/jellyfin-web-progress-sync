@@ -13,6 +13,7 @@ interface IdleLogoutDevice {
     DateLastActivity: string;
     HasExplicitOverride: boolean;
     IsCurrentOverrideSubject: boolean;
+    IsCurrentlyConnected: boolean;
 }
 
 interface IdleLogoutPolicy {
@@ -131,7 +132,7 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
                             type='checkbox'
                             checked={policy.SelectedDeviceIds.includes(device.DeviceId)}
                             onChange={event => toggleSelectedDevice(device.DeviceId, event.currentTarget.checked)}
-                        /> {device.FriendlyName} ({device.AppName})
+                        /> {device.FriendlyName}{device.AppName && ` (${device.AppName})`}{!device.IsCurrentlyConnected && ' — not currently connected'}
                     </label>
                 ))}
             </fieldset>}
@@ -148,7 +149,7 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
                     const isSubject = hasOverride ? policy.DeviceOverrides[device.DeviceId] : policy.ManualFutureDefaultSubject;
                     return (
                         <div key={device.DeviceId} className='idleLogoutManualDevice'>
-                            <span>{device.FriendlyName} ({device.AppName})</span>
+                            <span>{device.FriendlyName}{device.AppName && ` (${device.AppName})`}{!device.IsCurrentlyConnected && ' — not currently connected'}</span>
                             <label><input type='radio' name={`idle-${userId}-${device.DeviceId}`} checked={hasOverride && isSubject} onChange={() => toggleManualOverride(device.DeviceId, true)} /> Subject</label>
                             <label><input type='radio' name={`idle-${userId}-${device.DeviceId}`} checked={hasOverride && !isSubject} onChange={() => toggleManualOverride(device.DeviceId, false)} /> Exempt</label>
                             <label><input type='radio' name={`idle-${userId}-${device.DeviceId}`} checked={!hasOverride} onChange={() => clearManualOverride(device.DeviceId)} /> Default</label>
