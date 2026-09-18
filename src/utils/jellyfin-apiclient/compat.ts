@@ -2,29 +2,7 @@ import { Api, Jellyfin } from '@jellyfin/sdk';
 import { ApiClient } from 'jellyfin-apiclient';
 
 import { safeDecodeURIComponent } from 'utils/url';
-
-/**
- * The Api instance is created once and reused for the lifetime of the tab
- * (see ServerConnections.getApi's apiClient._sdk ??= toApi(apiClient)), so
- * nothing re-checks its validity while the app stays open. If the session is
- * revoked in the meantime (idle logout, an administrator's device logout,
- * etc), every subsequent call through it just fails with 401 forever - most
- * visibly as an endless failed websocket reconnect loop - with no prompt to
- * sign back in. Reloading re-runs the (already-corrected) boot-time
- * validation in connectionManager.js's onSuccessfulConnection, which clears
- * the dead credentials and bounces to the login page.
- */
-let handlingExpiredSession = false;
-
-function handleExpiredSession(apiClient: ApiClient) {
-    if (handlingExpiredSession) {
-        return;
-    }
-
-    handlingExpiredSession = true;
-    apiClient.setAuthenticationInfo();
-    window.location.reload();
-}
+import { handleExpiredSession } from './expiredSession';
 
 /**
  * Returns an SDK Api instance using the same parameters as the provided ApiClient.

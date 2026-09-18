@@ -7,6 +7,7 @@ import { detectBitrate } from 'utils/bitrateTest';
 import Dashboard from 'utils/dashboard';
 import Events from 'utils/events';
 import { createApiClient } from 'utils/jellyfin-apiclient/createApiClient';
+import { handleExpiredSession } from 'utils/jellyfin-apiclient/expiredSession';
 import { clearSessionAuthentication } from 'utils/sessionAuthentication';
 
 import ConnectionManager from './connectionManager';
@@ -30,24 +31,6 @@ const getMaxBandwidth = () => {
 
     return null;
 };
-
-// Mirrors the @jellyfin/sdk response interceptor in utils/jellyfin-apiclient/compat.ts.
-// That one only covers requests made through the SDK's Api instance; a large part of
-// this app (legacy controllers, dashboard pages) still calls apiClient.ajax()/getJSON()
-// directly, which never goes through the SDK at all. Without this, a session dying
-// while one of those pages is open (idle logout, an administrator's device logout,
-// etc) just fails every request forever with no prompt to sign back in.
-let handlingExpiredSession = false;
-
-function handleExpiredSession(apiClient) {
-    if (handlingExpiredSession) {
-        return;
-    }
-
-    handlingExpiredSession = true;
-    apiClient.setAuthenticationInfo(null, null);
-    window.location.reload();
-}
 
 class ServerConnections extends ConnectionManager {
     firstConnection = false;

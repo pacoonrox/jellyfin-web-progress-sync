@@ -27,10 +27,11 @@ export function setSessionAuthentication(serverId, userId, accessToken) {
 }
 
 export function clearSessionAuthentication() {
-    try {
-        window.localStorage.removeItem(SESSION_AUTH_KEY);
-        window.sessionStorage.removeItem(SESSION_AUTH_KEY);
-    } catch (error) {
-        console.warn('[SessionAuthentication] unable to clear session authentication', error);
+    for (const storageName of ['localStorage', 'sessionStorage']) {
+        try {
+            window[storageName].removeItem(SESSION_AUTH_KEY);
+        } catch (error) {
+            console.warn('[SessionAuthentication] unable to clear session authentication', error);
+        }
     }
 }

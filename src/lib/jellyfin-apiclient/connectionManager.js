@@ -6,6 +6,7 @@ import events from 'utils/events';
 import { ajax } from 'utils/fetch';
 import { toApi } from 'utils/jellyfin-apiclient/compat';
 import { createApiClient } from 'utils/jellyfin-apiclient/createApiClient';
+import { clearExpiredSession } from 'utils/jellyfin-apiclient/expiredSession';
 import { equalsIgnoreCase } from 'utils/string';
 import { safeDecodeURIComponent } from 'utils/url';
 import { getSessionAuthentication } from 'utils/sessionAuthentication';
@@ -618,7 +619,7 @@ export default class ConnectionManager {
             const handleInvalidSession = function (err) {
                 const status = err && err.status;
                 if (status === 401 || status === 403) {
-                    result.ApiClient.setAuthenticationInfo(null, null);
+                    clearExpiredSession(result.ApiClient);
                     result.State = ConnectionState.ServerSignIn;
                 }
 

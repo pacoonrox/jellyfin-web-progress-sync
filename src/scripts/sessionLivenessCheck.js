@@ -8,7 +8,7 @@ let enabled = false;
 
 function checkSession() {
     const apiClient = ServerConnections.currentApiClient();
-    if (!apiClient) {
+    if (!apiClient?.accessToken()) {
         return;
     }
 
