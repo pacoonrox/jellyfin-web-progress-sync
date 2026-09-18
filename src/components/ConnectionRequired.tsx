@@ -105,11 +105,18 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
             throw new Error('No ApiClient available');
         }
 
-        const systemInfo = await fetchPublicSystemInfo(apiClient);
-        if (systemInfo?.StartupWizardCompleted) {
-            console.info('[ConnectionRequired] startup wizard is complete, redirecting home');
-            navigate(BounceRoutes.Home);
-            return;
+        try {
+            const systemInfo = await fetchPublicSystemInfo(apiClient);
+            if (systemInfo?.StartupWizardCompleted) {
+                console.info('[ConnectionRequired] startup wizard is complete, redirecting home');
+                navigate(BounceRoutes.Home);
+                return;
+            }
+        } catch (ex) {
+            // Could not verify wizard completion (e.g. a transient network error).
+            // Fall through and show the wizard instead of leaving the user stuck
+            // on the loading spinner - it's already the route they were headed to.
+            console.error('[ConnectionRequired] checking wizard status failed', ex);
         }
 
         // Update the current ApiClient
@@ -132,8 +139,10 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
                     return;
                 }
             } catch (ex) {
+                // Could not verify wizard status (e.g. a transient network error).
+                // Fall through to the normal login flow rather than leaving the
+                // user stuck on the loading spinner forever.
                 console.error('[ConnectionRequired] checking wizard status failed', ex);
-                return;
             }
         }
 
@@ -144,20 +153,27 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
             });
     }, [bounce, navigate]);
 
+    // Reconnects and bounces to whatever page that resolves to (login, home,
+    // select server, etc). Used to recover when a request that gates access
+    // (auth check, admin check) fails - e.g. a token was revoked mid-session.
+    // Only shows the generic connection-error page if reconnecting itself
+    // fails, so the user is never left stuck on the loading spinner.
+    const bounceOrShowError = useCallback(async () => {
+        try {
+            await bounce(await ServerConnections.connect());
+        } catch (ex) {
+            console.error('[ConnectionRequired] failed to reconnect', ex);
+            setErrorState(ConnectionState.Unavailable);
+        }
+    }, [bounce]);
+
     const validateUserAccess = useCallback(async () => {
         const client = ServerConnections.currentApiClient();
 
         // If this is a user route, ensure a user is logged in
         if ((level === AccessLevel.Admin || level === AccessLevel.User) && !client?.isLoggedIn()) {
-            try {
-                console.warn('[ConnectionRequired] unauthenticated user attempted to access user route');
-                bounce(await ServerConnections.connect())
-                    .catch(err => {
-                        console.error('[ConnectionRequired] failed to bounce', err);
-                    });
-            } catch (ex) {
-                console.warn('[ConnectionRequired] error bouncing from user route', ex);
-            }
+            console.warn('[ConnectionRequired] unauthenticated user attempted to access user route');
+            await bounceOrShowError();
             return;
         }
 
@@ -167,20 +183,21 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
                 const user = await client?.getCurrentUser();
                 if (!user?.Policy?.IsAdministrator) {
                     console.warn('[ConnectionRequired] normal user attempted to access admin route');
-                    bounce(await ServerConnections.connect())
-                        .catch(err => {
-                            console.error('[ConnectionRequired] failed to bounce', err);
-                        });
+                    await bounceOrShowError();
                     return;
                 }
             } catch (ex) {
-                console.warn('[ConnectionRequired] error bouncing from admin route', ex);
+                // This can happen if the session was revoked (e.g. idle
+                // logout) while the page was open. Try to reconnect rather
+                // than leaving the user stuck on the loading spinner.
+                console.warn('[ConnectionRequired] error checking admin access, attempting to reconnect', ex);
+                await bounceOrShowError();
                 return;
             }
         }
 
         setIsLoading(false);
-    }, [bounce, level]);
+    }, [bounceOrShowError, level]);
 
     useEffect(() => {
         // Check connection status on initial page load
@@ -211,7 +228,11 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
                     });
             }
         }).catch(err => {
+            // The initial connection attempt itself failed (not just a bad
+            // ConnectionState). Show the error page instead of leaving the
+            // user stuck on the loading spinner indefinitely.
             console.error('[ConnectionRequired] failed to connect', err);
+            setErrorState(ConnectionState.Unavailable);
         });
     }, [handleIncompleteWizard, handleWizard, level, validateUserAccess]);
 
