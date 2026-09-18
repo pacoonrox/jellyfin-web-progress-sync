@@ -4,6 +4,6 @@ declare module '@jellyfin/sdk/lib/generated-client/models/user-policy' {
     interface UserPolicy {
         TwoFactorAuthenticationPolicy?: 'Disabled' | 'Allowed' | 'Required';
         InactiveLogoutMinutes?: number;
-        InactiveLogoutScope?: 'Device' | 'User';
+        InactiveLogoutScope?: 'Device' | 'User' | 'UserExceptDevice';
     }
 }

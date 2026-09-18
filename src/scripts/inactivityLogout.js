@@ -19,6 +19,7 @@ let logoutScope = 'Device';
 let lastActivity = Date.now();
 let timer;
 let enabled = false;
+let logoutInProgress = false;
 
 function isActivePlayback() {
     return !!playbackManager.isPlaying() && !playbackManager.paused();
@@ -38,8 +39,19 @@ function stopTimer() {
 function reset() {
     timeoutMinutes = 0;
     logoutScope = 'Device';
+    logoutInProgress = false;
     markActive();
     stopTimer();
+}
+
+async function reportInactive() {
+    const result = await window.ApiClient.ajax({
+        type: 'POST',
+        url: window.ApiClient.getUrl('Sessions/Logout/Inactive'),
+        dataType: 'json',
+        headers: { accept: 'application/json' }
+    });
+    return result?.json ? result.json() : result;
 }
 
 function checkInactive() {
@@ -54,16 +66,30 @@ function checkInactive() {
 
     const inactiveMs = Date.now() - lastActivity;
     if (inactiveMs >= timeoutMinutes * 60000) {
-        const logoutAllDevices = logoutScope === 'User';
-        reset();
-        const applyGlobalLogout = logoutAllDevices ? window.ApiClient.ajax({
-            type: 'POST',
-            url: window.ApiClient.getUrl('Sessions/Logout/Inactive')
-        }).catch(error => {
-            console.warn('[inactivityLogout] failed to apply all-device logout', error);
-        }) : Promise.resolve();
+        if (logoutInProgress) {
+            return;
+        }
 
-        applyGlobalLogout.finally(() => Dashboard.logout({ clearSavedServer: true }));
+        const fallbackLogoutCurrentDevice = logoutScope !== 'UserExceptDevice';
+        logoutInProgress = true;
+        reportInactive().then(logoutCurrentDevice => {
+            if (logoutCurrentDevice === true) {
+                reset();
+                Dashboard.logout({ clearSavedServer: true });
+            } else {
+                markActive();
+                logoutInProgress = false;
+            }
+        }).catch(error => {
+            console.warn('[inactivityLogout] failed to apply inactivity policy', error);
+            if (fallbackLogoutCurrentDevice) {
+                reset();
+                Dashboard.logout({ clearSavedServer: true });
+            } else {
+                markActive();
+                logoutInProgress = false;
+            }
+        });
     }
 }
 
@@ -72,7 +98,8 @@ function start(user) {
 
     reset();
     timeoutMinutes = Math.max(0, minutes);
-    logoutScope = user?.Policy?.InactiveLogoutScope === 'User' ? 'User' : 'Device';
+    const configuredScope = user?.Policy?.InactiveLogoutScope;
+    logoutScope = configuredScope === 'User' || configuredScope === 'UserExceptDevice' ? configuredScope : 'Device';
 
     if (timeoutMinutes > 0) {
         timer = setInterval(checkInactive, CHECK_INTERVAL_MS);

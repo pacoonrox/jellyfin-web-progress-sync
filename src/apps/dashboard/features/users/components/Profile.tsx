@@ -31,7 +31,6 @@ type ResetProvider = BaseItemDto & {
 };
 
 type TwoFactorAuthenticationPolicy = 'Disabled' | 'Allowed' | 'Required';
-type InactiveLogoutScope = 'Device' | 'User';
 
 type TwoFactorStatus = {
     Policy: TwoFactorAuthenticationPolicy;
@@ -229,8 +228,6 @@ const Profile = ({ userDto }: ProfileProps) => {
             (userDto.Policy?.RemoteClientBitrateLimit / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '';
         (page.querySelector('#txtLoginAttemptsBeforeLockout') as HTMLInputElement).value = String(userDto.Policy?.LoginAttemptsBeforeLockout) || '-1';
         (page.querySelector('#txtMaxActiveSessions') as HTMLInputElement).value = String(userDto.Policy?.MaxActiveSessions) || '0';
-        (page.querySelector('#txtInactiveLogoutMinutes') as HTMLInputElement).value = String(userDto.Policy?.InactiveLogoutMinutes || 0);
-        (page.querySelector('#selectInactiveLogoutScope') as HTMLSelectElement).value = userDto.Policy?.InactiveLogoutScope || 'Device';
         (page.querySelector('#selectSyncPlayAccess') as HTMLSelectElement).value = String(userDto.Policy?.SyncPlayAccess);
         (page.querySelector('#selectTwoFactorAuthenticationPolicy') as HTMLSelectElement).value = userDto.Policy?.TwoFactorAuthenticationPolicy || 'Disabled';
         loading.hide();
@@ -315,8 +312,6 @@ const Profile = ({ userDto }: ProfileProps) => {
             user.Policy.RemoteClientBitrateLimit = Math.floor(1e6 * parseFloat((page.querySelector('#txtRemoteClientBitrateLimit') as HTMLInputElement).value || '0'));
             user.Policy.LoginAttemptsBeforeLockout = parseInt((page.querySelector('#txtLoginAttemptsBeforeLockout') as HTMLInputElement).value || '0', 10);
             user.Policy.MaxActiveSessions = parseInt((page.querySelector('#txtMaxActiveSessions') as HTMLInputElement).value || '0', 10);
-            user.Policy.InactiveLogoutMinutes = parseInt((page.querySelector('#txtInactiveLogoutMinutes') as HTMLInputElement).value || '0', 10);
-            user.Policy.InactiveLogoutScope = (page.querySelector('#selectInactiveLogoutScope') as HTMLSelectElement).value as InactiveLogoutScope;
             user.Policy.AuthenticationProviderId = (page.querySelector('#selectLoginProvider') as HTMLSelectElement).value;
             user.Policy.PasswordResetProviderId = (page.querySelector('#selectPasswordResetProvider') as HTMLSelectElement).value;
             user.Policy.EnableContentDeletion = (page.querySelector('.chkEnableDeleteAllFolders') as HTMLInputElement).checked;
@@ -397,13 +392,6 @@ const Profile = ({ userDto }: ProfileProps) => {
         content += `<option value='Disabled'>${globalize.translate('LabelTwoFactorPolicyDisabled')}</option>`;
         content += `<option value='Allowed'>${globalize.translate('LabelTwoFactorPolicyAllowed')}</option>`;
         content += `<option value='Required'>${globalize.translate('LabelTwoFactorPolicyRequired')}</option>`;
-        return content;
-    };
-
-    const optionInactiveLogoutScope = () => {
-        let content = '';
-        content += `<option value='Device'>${globalize.translate('LabelInactiveLogoutScopeDevice')}</option>`;
-        content += `<option value='User'>${globalize.translate('LabelInactiveLogoutScopeUser')}</option>`;
         return content;
     };
 
@@ -720,32 +708,6 @@ const Profile = ({ userDto }: ProfileProps) => {
                         </div>
                         <div className='fieldDescription'>
                             {globalize.translate('OptionMaxActiveSessionsHelp')}
-                        </div>
-                    </div>
-                </div>
-                <br />
-                <div className='verticalSection'>
-                    <div className='inputContainer' id='fldInactiveLogoutMinutes'>
-                        <Input
-                            type='number'
-                            id='txtInactiveLogoutMinutes'
-                            label={globalize.translate('LabelInactiveLogoutMinutes')}
-                            min={0}
-                            step={1}
-                        />
-                        <div className='fieldDescription'>
-                            {globalize.translate('LabelInactiveLogoutMinutesHelp')}
-                        </div>
-                    </div>
-                    <div className='selectContainer'>
-                        <SelectElement
-                            id='selectInactiveLogoutScope'
-                            label='LabelInactiveLogoutScope'
-                        >
-                            {optionInactiveLogoutScope()}
-                        </SelectElement>
-                        <div className='fieldDescription'>
-                            {globalize.translate('LabelInactiveLogoutScopeHelp')}
                         </div>
                     </div>
                 </div>

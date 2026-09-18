@@ -2,7 +2,6 @@
     max-width: 90rem;
 }
 
-.trustedDevicePolicy,
 .trustedDeviceToolbar {
     display: flex;
     flex-wrap: wrap;
@@ -10,14 +9,39 @@
     align-items: center;
 }
 
-.trustedDevicePolicy label {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
+.trustedDevicePolicy {
+    display: grid;
+    gap: 1rem;
+    max-width: 52rem;
 }
 
-.trustedDevicePolicy input[type='number'] {
+.trustedDevicePolicySection {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 0.4rem;
+}
+
+.trustedDevicePolicySection h3,
+.trustedDevicePolicySection p {
+    margin: 0;
+}
+
+.trustedDevicePolicySection label {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.trustedDevicePolicySection input[type='number'] {
     width: 6rem;
+}
+
+.trustedDevicePolicySection select {
+    min-width: min(26rem, 100%);
 }
 
 .trustedDeviceToolbar {
