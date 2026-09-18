@@ -95,3 +95,48 @@
     text-align: left;
     vertical-align: top;
 }
+
+.idleLogoutPolicy {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 0.4rem;
+    max-width: 52rem;
+}
+
+.idleLogoutPolicy > p {
+    margin: 0;
+}
+
+.idleLogoutPolicy label {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.idleLogoutPolicy input[type='number'] {
+    width: 6rem;
+}
+
+.idleLogoutPolicy select {
+    min-width: min(26rem, 100%);
+}
+
+.idleLogoutDeviceList {
+    display: grid;
+    gap: 0.5rem;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 0.4rem;
+    padding: 0.75rem;
+}
+
+.idleLogoutManualDevice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}

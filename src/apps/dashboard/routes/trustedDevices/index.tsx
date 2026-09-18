@@ -5,11 +5,14 @@ import Page from 'components/Page';
 import Button from 'elements/emby-button/Button';
 import { useApi } from 'hooks/useApi';
 
+import IdleLogoutPolicySection from './IdleLogoutPolicySection';
+
 import './trustedDevices.scss';
 
 interface TrustedDevice {
     Id: number;
     UserId: string;
+    DeviceId: string;
     Username: string;
     FriendlyName: string;
     AppName: string;
@@ -38,15 +41,11 @@ interface SecurityAudit {
     Detail: string;
 }
 
-type InactiveLogoutScope = 'Device' | 'User' | 'UserExceptDevice';
-
 const TrustedDevicesPage: FC = () => {
     const { __legacyApiClient__: api } = useApi();
     const [ devices, setDevices ] = useState<TrustedDevice[]>([]);
     const [ enabled, setEnabled ] = useState(true);
     const [ defaultDays, setDefaultDays ] = useState(30);
-    const [ inactiveLogoutMinutes, setInactiveLogoutMinutes ] = useState(0);
-    const [ inactiveLogoutScope, setInactiveLogoutScope ] = useState<InactiveLogoutScope>('Device');
     const [ search, setSearch ] = useState('');
     const [ state, setState ] = useState('');
     const [ message, setMessage ] = useState('');
@@ -62,8 +61,6 @@ const TrustedDevicesPage: FC = () => {
         ]);
         setEnabled(policy.Enabled);
         setDefaultDays(policy.DefaultTrustDays);
-        setInactiveLogoutMinutes(policy.InactiveLogoutMinutes || 0);
-        setInactiveLogoutScope(policy.InactiveLogoutScope || 'Device');
         setDevices(records.Items);
         setAudit(auditRecords);
     }, [ api, search, state ]);
@@ -82,10 +79,10 @@ const TrustedDevicesPage: FC = () => {
     const savePolicy = useCallback(async (event: FormEvent) => {
         event.preventDefault();
         if (!api) return;
-        await api.ajax({ type: 'PUT', url: api.getUrl('/DeviceApproval/Admin/Policy'), data: JSON.stringify({ Enabled: enabled, DefaultTrustDays: defaultDays, InactiveLogoutMinutes: inactiveLogoutMinutes, InactiveLogoutScope: inactiveLogoutScope }), contentType: 'application/json' });
-        setMessage('Device and idle-logout policies saved. Disabling trusted devices immediately revokes existing trust.');
+        await api.ajax({ type: 'PUT', url: api.getUrl('/DeviceApproval/Admin/Policy'), data: JSON.stringify({ Enabled: enabled, DefaultTrustDays: defaultDays }), contentType: 'application/json' });
+        setMessage('Trusted-device policy saved. Disabling trusted devices immediately revokes existing trust.');
         void load();
-    }, [ api, defaultDays, enabled, inactiveLogoutMinutes, inactiveLogoutScope, load ]);
+    }, [ api, defaultDays, enabled, load ]);
 
     const update = useCallback(async (device: TrustedDevice, trust = false) => {
         if (!api) return;
@@ -120,22 +117,12 @@ const TrustedDevicesPage: FC = () => {
         <Page id='trustedDevicesPage' title='Trusted devices' className='mainAnimatedPage type-interior'>
             <div className='content-primary trustedDevicesPage'>
                 <h2>Device and idle policies</h2>
-                <p>Configure trusted sign-in and the server-wide idle logout policy here. Idle logout applies to every user, including administrators. Administrator-granted trust exempts that device from triggering idle logout. While idle logout is enabled, users cannot grant trusted status to their own devices.</p>
+                <p>Configure trusted sign-in here. Administrator-granted trust exempts that device from triggering idle logout. Idle logout itself is configured per user, below, and while it is enabled for a user, that user cannot grant trusted status to their own devices.</p>
                 <form onSubmit={event => void savePolicy(event)} className='trustedDevicePolicy'>
                     <section className='trustedDevicePolicySection'>
                         <h3>Trusted sign-in</h3>
                         <label><input type='checkbox' checked={enabled} onChange={event => setEnabled(event.currentTarget.checked)} /> Enable device approval and trusted devices</label>
                         <label>Default trust duration (days)<input type='number' min='1' max='3650' value={defaultDays} onChange={event => setDefaultDays(Number(event.currentTarget.value))} /></label>
-                    </section>
-                    <section className='trustedDevicePolicySection'>
-                        <h3>Automatic idle logout</h3>
-                        <label>Global idle timeout (minutes)<input type='number' min='0' max='525600' value={inactiveLogoutMinutes} onChange={event => setInactiveLogoutMinutes(Number(event.currentTarget.value))} /></label>
-                        <label>When a device reaches the timeout<select value={inactiveLogoutScope} onChange={event => setInactiveLogoutScope(event.currentTarget.value as InactiveLogoutScope)}>
-                            <option value='Device'>Sign out the inactive device only</option>
-                            <option value='User'>Sign out this user on all devices</option>
-                            <option value='UserExceptDevice'>Sign out this user everywhere except the inactive device</option>
-                        </select></label>
-                        <p>Set the timeout to 0 to disable idle logout. Active playback counts as activity; paused or stopped playback does not. The “except” option keeps the device whose timer fired signed in while signing out that user’s other devices.</p>
                     </section>
                     <Button type='submit' className='raised button-submit' title='Save policy' />
                 </form>
@@ -163,6 +150,7 @@ const TrustedDevicesPage: FC = () => {
                             <details key={key} className='trustedDeviceGroup' open>
                                 <summary><strong>{username}</strong><span>{list.length} device{list.length === 1 ? '' : 's'}</span></summary>
                                 <header><Button type='button' className='raised cancel' title='Revoke user trust' onClick={() => void remove(`/DeviceApproval/Admin/Users/${userId}/TrustedDevices`, `Revoke every trusted device for ${username}?`)} /><Button type='button' className='raised cancel' title='Log out all devices' onClick={() => void logout(`/DeviceApproval/Admin/Users/${userId}/Logout`, `Log out ${username} on every device? Their trusted-device credentials will also be revoked.`)} /></header>
+                                <IdleLogoutPolicySection userId={userId} username={username} />
                                 <div className='trustedDeviceTableWrap'><table><thead><tr><th>Device</th><th>Client / platform</th><th>First / last seen</th><th>Trust</th><th>Network</th><th>Actions</th></tr></thead>
                                     <tbody>{list.map(device => <tr key={device.Id}>
                                         <td>{device.FriendlyName}</td>

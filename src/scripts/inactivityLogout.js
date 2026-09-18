@@ -15,7 +15,6 @@ const ACTIVITY_EVENTS = [
 ];
 
 let timeoutMinutes = 0;
-let logoutScope = 'Device';
 let lastActivity = Date.now();
 let timer;
 let enabled = false;
@@ -38,7 +37,6 @@ function stopTimer() {
 
 function reset() {
     timeoutMinutes = 0;
-    logoutScope = 'Device';
     logoutInProgress = false;
     markActive();
     stopTimer();
@@ -70,10 +68,9 @@ function checkInactive() {
             return;
         }
 
-        const fallbackLogoutCurrentDevice = logoutScope !== 'UserExceptDevice';
         logoutInProgress = true;
-        reportInactive().then(logoutCurrentDevice => {
-            if (logoutCurrentDevice === true) {
+        reportInactive().then(loggedOutCurrentDevice => {
+            if (loggedOutCurrentDevice === true) {
                 reset();
                 Dashboard.logout({ clearSavedServer: true });
             } else {
@@ -82,13 +79,9 @@ function checkInactive() {
             }
         }).catch(error => {
             console.warn('[inactivityLogout] failed to apply inactivity policy', error);
-            if (fallbackLogoutCurrentDevice) {
-                reset();
-                Dashboard.logout({ clearSavedServer: true });
-            } else {
-                markActive();
-                logoutInProgress = false;
-            }
+            // The server could not confirm whether this device is still exempt, so fail closed.
+            reset();
+            Dashboard.logout({ clearSavedServer: true });
         });
     }
 }
@@ -98,8 +91,6 @@ function start(user) {
 
     reset();
     timeoutMinutes = Math.max(0, minutes);
-    const configuredScope = user?.Policy?.InactiveLogoutScope;
-    logoutScope = configuredScope === 'User' || configuredScope === 'UserExceptDevice' ? configuredScope : 'Device';
 
     if (timeoutMinutes > 0) {
         timer = setInterval(checkInactive, CHECK_INTERVAL_MS);
