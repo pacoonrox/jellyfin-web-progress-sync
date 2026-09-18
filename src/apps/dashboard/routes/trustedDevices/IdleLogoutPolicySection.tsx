@@ -102,9 +102,18 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
 
     return (
         <form onSubmit={event => void save(event)} className='idleLogoutPolicy'>
-            <label><input type='checkbox' checked={policy.Enabled} onChange={event => setPolicy(current => ({ ...current, Enabled: event.currentTarget.checked }))} /> Enable idle logout for {username}</label>
-            <label>Idle timeout (minutes)<input type='number' min='1' max='525600' value={policy.Minutes} onChange={event => setPolicy(current => ({ ...current, Minutes: Number(event.currentTarget.value) }))} /></label>
-            <label>Applies to<select value={policy.ScopeMode} onChange={event => setPolicy(current => ({ ...current, ScopeMode: event.currentTarget.value as IdleLogoutScopeMode }))}>
+            <label><input type='checkbox' checked={policy.Enabled} onChange={event => {
+                const checked = event.currentTarget.checked;
+                setPolicy(current => ({ ...current, Enabled: checked }));
+            }} /> Enable idle logout for {username}</label>
+            <label>Idle timeout (minutes)<input type='number' min='1' max='525600' value={policy.Minutes} onChange={event => {
+                const minutes = Number(event.currentTarget.value);
+                setPolicy(current => ({ ...current, Minutes: minutes }));
+            }} /></label>
+            <label>Applies to<select value={policy.ScopeMode} onChange={event => {
+                const scopeMode = event.currentTarget.value as IdleLogoutScopeMode;
+                setPolicy(current => ({ ...current, ScopeMode: scopeMode }));
+            }}>
                 <option value='AllDevices'>All devices for this user</option>
                 <option value='NoDevices'>No devices for this user</option>
                 <option value='AllDevicesExceptSelected'>All devices except selected (including new devices added later)</option>
@@ -129,7 +138,10 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
 
             {policy.ScopeMode === 'SelectedManual' && <fieldset className='idleLogoutDeviceList'>
                 <legend>Per-device setting</legend>
-                <label><input type='checkbox' checked={policy.ManualFutureDefaultSubject} onChange={event => setPolicy(current => ({ ...current, ManualFutureDefaultSubject: event.currentTarget.checked }))} /> New devices added in the future are subject to idle logout by default</label>
+                <label><input type='checkbox' checked={policy.ManualFutureDefaultSubject} onChange={event => {
+                    const checked = event.currentTarget.checked;
+                    setPolicy(current => ({ ...current, ManualFutureDefaultSubject: checked }));
+                }} /> New devices added in the future are subject to idle logout by default</label>
                 {policy.Devices.length === 0 && <p>No devices observed for this user yet.</p>}
                 {policy.Devices.map(device => {
                     const hasOverride = Object.prototype.hasOwnProperty.call(policy.DeviceOverrides, device.DeviceId);
