@@ -15,6 +15,7 @@ const ACTIVITY_EVENTS = [
 ];
 
 let timeoutMinutes = 0;
+let logoutScope = 'Device';
 let lastActivity = Date.now();
 let timer;
 let enabled = false;
@@ -36,6 +37,7 @@ function stopTimer() {
 
 function reset() {
     timeoutMinutes = 0;
+    logoutScope = 'Device';
     markActive();
     stopTimer();
 }
@@ -52,8 +54,16 @@ function checkInactive() {
 
     const inactiveMs = Date.now() - lastActivity;
     if (inactiveMs >= timeoutMinutes * 60000) {
+        const logoutAllDevices = logoutScope === 'User';
         reset();
-        Dashboard.logout({ clearSavedServer: true });
+        const applyGlobalLogout = logoutAllDevices ? window.ApiClient.ajax({
+            type: 'POST',
+            url: window.ApiClient.getUrl('Sessions/Logout/Inactive')
+        }).catch(error => {
+            console.warn('[inactivityLogout] failed to apply all-device logout', error);
+        }) : Promise.resolve();
+
+        applyGlobalLogout.finally(() => Dashboard.logout({ clearSavedServer: true }));
     }
 }
 
@@ -62,6 +72,7 @@ function start(user) {
 
     reset();
     timeoutMinutes = Math.max(0, minutes);
+    logoutScope = user?.Policy?.InactiveLogoutScope === 'User' ? 'User' : 'Device';
 
     if (timeoutMinutes > 0) {
         timer = setInterval(checkInactive, CHECK_INTERVAL_MS);
