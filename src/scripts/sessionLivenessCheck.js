@@ -1,7 +1,7 @@
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 import Events from 'utils/events';
 
-const CHECK_INTERVAL_MS = 15000;
+const CHECK_INTERVAL_MS = 5000;
 
 let timer;
 let enabled = false;
@@ -28,9 +28,21 @@ function checkSession() {
     });
 }
 
+function checkSessionIfVisible() {
+    if (!document.hidden) {
+        checkSession();
+    }
+}
+
 function start() {
     stop();
     timer = setInterval(checkSession, CHECK_INTERVAL_MS);
+    // Re-checking on the timer alone means the worst case is however long a tab
+    // was backgrounded - a session revoked while this tab is in the background
+    // (e.g. an admin logged it out while you were looking at a different tab)
+    // is otherwise only discovered up to CHECK_INTERVAL_MS after you switch back.
+    document.addEventListener('visibilitychange', checkSessionIfVisible);
+    window.addEventListener('focus', checkSession);
 }
 
 function stop() {
@@ -38,6 +50,9 @@ function stop() {
         clearInterval(timer);
         timer = null;
     }
+
+    document.removeEventListener('visibilitychange', checkSessionIfVisible);
+    window.removeEventListener('focus', checkSession);
 }
 
 export function initializeSessionLivenessCheck() {
