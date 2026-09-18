@@ -48,10 +48,10 @@ describe('login landing after session expiry', () => {
                 <MemoryRouter initialEntries={['/home']}>
                     <Routes>
                         <Route element={<ConnectionRequired />}>
-                            <Route path="/home" element={<div>Home</div>} />
+                            <Route path='/home' element={<div>Home</div>} />
                         </Route>
-                        <Route element={<ConnectionRequired level="public" />}>
-                            <Route path="/login" element={<div>Sign in</div>} />
+                        <Route element={<ConnectionRequired level='public' />}>
+                            <Route path='/login' element={<div>Sign in</div>} />
                         </Route>
                     </Routes>
                 </MemoryRouter>
