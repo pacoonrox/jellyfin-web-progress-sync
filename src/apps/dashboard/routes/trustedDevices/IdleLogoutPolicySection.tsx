@@ -4,17 +4,9 @@ import React, { FC, FormEvent, useCallback, useEffect, useState } from 'react';
 import Button from 'elements/emby-button/Button';
 import { useApi } from 'hooks/useApi';
 
-type IdleLogoutScopeMode = 'AllDevices' | 'NoDevices' | 'AllDevicesExceptSelected' | 'NoDevicesExceptSelected' | 'SelectedManual';
+import type { TrustedDevice } from './index';
 
-interface IdleLogoutDevice {
-    DeviceId: string;
-    FriendlyName: string;
-    AppName: string;
-    DateLastActivity: string;
-    HasExplicitOverride: boolean;
-    IsCurrentOverrideSubject: boolean;
-    IsCurrentlyConnected: boolean;
-}
+type IdleLogoutScopeMode = 'AllDevices' | 'NoDevices' | 'AllDevicesExceptSelected' | 'NoDevicesExceptSelected' | 'SelectedManual';
 
 interface IdleLogoutPolicy {
     Enabled: boolean;
@@ -23,7 +15,6 @@ interface IdleLogoutPolicy {
     SelectedDeviceIds: string[];
     ManualFutureDefaultSubject: boolean;
     DeviceOverrides: Record<string, boolean>;
-    Devices: IdleLogoutDevice[];
 }
 
 const DEFAULT_POLICY: IdleLogoutPolicy = {
@@ -32,16 +23,20 @@ const DEFAULT_POLICY: IdleLogoutPolicy = {
     ScopeMode: 'AllDevices',
     SelectedDeviceIds: [],
     ManualFutureDefaultSubject: true,
-    DeviceOverrides: {},
-    Devices: []
+    DeviceOverrides: {}
 };
 
 interface IdleLogoutPolicySectionProps {
     userId: string;
     username: string;
+    // The same trusted-device records already shown in this user's group on the parent
+    // page -- reused here rather than fetched separately, so this list stays identical to
+    // (and stays populated the same way as) the main Trusted devices table, including for
+    // devices that no longer have a live session (e.g. one idle logout itself logged out).
+    devices: TrustedDevice[];
 }
 
-const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, username }) => {
+const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, username, devices }) => {
     const { __legacyApiClient__: api } = useApi();
     const [ policy, setPolicy ] = useState<IdleLogoutPolicy>(DEFAULT_POLICY);
     const [ message, setMessage ] = useState('');
@@ -55,8 +50,7 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
             ScopeMode: result.ScopeMode || 'AllDevices',
             SelectedDeviceIds: result.SelectedDeviceIds || [],
             ManualFutureDefaultSubject: result.ManualFutureDefaultSubject,
-            DeviceOverrides: result.DeviceOverrides || {},
-            Devices: result.Devices || []
+            DeviceOverrides: result.DeviceOverrides || {}
         });
     }, [ api, userId ]);
 
@@ -125,14 +119,14 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
 
             {(policy.ScopeMode === 'AllDevicesExceptSelected' || policy.ScopeMode === 'NoDevicesExceptSelected') && <fieldset className='idleLogoutDeviceList'>
                 <legend>{policy.ScopeMode === 'AllDevicesExceptSelected' ? 'Exempt devices' : 'Included devices'}</legend>
-                {policy.Devices.length === 0 && <p>No devices observed for this user yet.</p>}
-                {policy.Devices.map(device => (
+                {devices.length === 0 && <p>No devices observed for this user yet.</p>}
+                {devices.map(device => (
                     <label key={device.DeviceId}>
                         <input
                             type='checkbox'
                             checked={policy.SelectedDeviceIds.includes(device.DeviceId)}
                             onChange={event => toggleSelectedDevice(device.DeviceId, event.currentTarget.checked)}
-                        /> {device.FriendlyName}{device.AppName && ` (${device.AppName})`}{!device.IsCurrentlyConnected && ' — not currently connected'}
+                        /> {device.FriendlyName}{device.AppName && ` (${device.AppName})`}
                     </label>
                 ))}
             </fieldset>}
@@ -143,13 +137,13 @@ const IdleLogoutPolicySection: FC<IdleLogoutPolicySectionProps> = ({ userId, use
                     const checked = event.currentTarget.checked;
                     setPolicy(current => ({ ...current, ManualFutureDefaultSubject: checked }));
                 }} /> New devices added in the future are subject to idle logout by default</label>
-                {policy.Devices.length === 0 && <p>No devices observed for this user yet.</p>}
-                {policy.Devices.map(device => {
+                {devices.length === 0 && <p>No devices observed for this user yet.</p>}
+                {devices.map(device => {
                     const hasOverride = Object.prototype.hasOwnProperty.call(policy.DeviceOverrides, device.DeviceId);
                     const isSubject = hasOverride ? policy.DeviceOverrides[device.DeviceId] : policy.ManualFutureDefaultSubject;
                     return (
                         <div key={device.DeviceId} className='idleLogoutManualDevice'>
-                            <span>{device.FriendlyName}{device.AppName && ` (${device.AppName})`}{!device.IsCurrentlyConnected && ' — not currently connected'}</span>
+                            <span>{device.FriendlyName}{device.AppName && ` (${device.AppName})`}</span>
                             <label><input type='radio' name={`idle-${userId}-${device.DeviceId}`} checked={hasOverride && isSubject} onChange={() => toggleManualOverride(device.DeviceId, true)} /> Subject</label>
                             <label><input type='radio' name={`idle-${userId}-${device.DeviceId}`} checked={hasOverride && !isSubject} onChange={() => toggleManualOverride(device.DeviceId, false)} /> Exempt</label>
                             <label><input type='radio' name={`idle-${userId}-${device.DeviceId}`} checked={!hasOverride} onChange={() => clearManualOverride(device.DeviceId)} /> Default</label>

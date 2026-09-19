@@ -9,7 +9,7 @@ import IdleLogoutPolicySection from './IdleLogoutPolicySection';
 
 import './trustedDevices.scss';
 
-interface TrustedDevice {
+export interface TrustedDevice {
     Id: number;
     UserId: string;
     DeviceId: string;
@@ -150,7 +150,7 @@ const TrustedDevicesPage: FC = () => {
                             <details key={key} className='trustedDeviceGroup' open>
                                 <summary><strong>{username}</strong><span>{list.length} device{list.length === 1 ? '' : 's'}</span></summary>
                                 <header><Button type='button' className='raised cancel' title='Revoke user trust' onClick={() => void remove(`/DeviceApproval/Admin/Users/${userId}/TrustedDevices`, `Revoke every trusted device for ${username}?`)} /><Button type='button' className='raised cancel' title='Log out all devices' onClick={() => void logout(`/DeviceApproval/Admin/Users/${userId}/Logout`, `Log out ${username} on every device? Their trusted-device credentials will also be revoked.`)} /></header>
-                                <IdleLogoutPolicySection userId={userId} username={username} />
+                                <IdleLogoutPolicySection userId={userId} username={username} devices={list} />
                                 <div className='trustedDeviceTableWrap'><table><thead><tr><th>Device</th><th>Client / platform</th><th>First / last seen</th><th>Trust</th><th>Network</th><th>Actions</th></tr></thead>
                                     <tbody>{list.map(device => <tr key={device.Id}>
                                         <td>{device.FriendlyName}</td>
