@@ -55,7 +55,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         LocalNetworkAddresses: splitString(data.LocalNetworkAddresses?.toString()),
         KnownProxies: splitString(data.KnownProxies?.toString()),
         RemoteIPFilter: splitString(data.RemoteIPFilter?.toString()),
-        IsRemoteIPFilterBlacklist: data.IsRemoteIPFilterBlacklist?.toString() === 'blacklist'
+        IsRemoteIPFilterBlacklist: data.IsRemoteIPFilterBlacklist?.toString() === 'blacklist',
+        EnableLocalNetworkAccessControl: data.EnableLocalNetworkAccessControl?.toString() === 'on',
+        LocalIPFilter: splitString(data.LocalIPFilter?.toString())
     };
 
     const publishedServerUri: PublishedServerUris = {};
@@ -300,6 +302,31 @@ export const Component = () => {
                                     label={globalize.translate('LabelPublicHttpsPort')}
                                     helperText={globalize.translate('LabelPublicHttpsPortHelp')}
                                     defaultValue={config.PublicHttpsPort}
+                                />
+                            </Stack>
+
+                            <Stack spacing={3}>
+                                <Typography variant='h2'>{globalize.translate('HeaderLocalNetworkAccessSettings')}</Typography>
+
+                                <FormControl>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                name='EnableLocalNetworkAccessControl'
+                                                defaultChecked={config.EnableLocalNetworkAccessControl}
+                                            />
+                                        }
+                                        label={globalize.translate('AllowLocalNetworkAccess')}
+                                    />
+                                    <FormHelperText>{globalize.translate('AllowLocalNetworkAccessHelp')}</FormHelperText>
+                                </FormControl>
+
+                                <TextField
+                                    name='LocalIPFilter'
+                                    label={globalize.translate('LabelAllowedLocalAddresses')}
+                                    helperText={globalize.translate('LabelAllowedLocalAddressesHelp')}
+                                    defaultValue={config.LocalIPFilter?.join(', ') || ''}
+                                    multiline
                                 />
                             </Stack>
 
