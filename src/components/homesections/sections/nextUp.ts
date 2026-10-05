@@ -100,9 +100,9 @@ export function loadNextUp(
 
     if (options.enableOverflow) {
         html += '<div is="emby-scroller" class="padded-top-focusscale padded-bottom-focusscale" data-centerfocus="true">';
-        html += '<div is="emby-itemscontainer" class="itemsContainer scrollSlider focuscontainer-x" data-monitor="videoplayback,markplayed">';
+        html += '<div is="emby-itemscontainer" class="itemsContainer scrollSlider focuscontainer-x" data-recommendation-section="true" data-monitor="videoplayback,markplayed">';
     } else {
-        html += '<div is="emby-itemscontainer" class="itemsContainer padded-left padded-right vertical-wrap focuscontainer-x" data-monitor="videoplayback,markplayed">';
+        html += '<div is="emby-itemscontainer" class="itemsContainer padded-left padded-right vertical-wrap focuscontainer-x" data-recommendation-section="true" data-monitor="videoplayback,markplayed">';
     }
 
     if (options.enableOverflow) {

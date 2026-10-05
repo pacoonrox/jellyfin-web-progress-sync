@@ -328,6 +328,14 @@ export async function getCommands(options) {
         });
     }
 
+    if (options.unfollow) {
+        commands.push({
+            name: 'Unfollow',
+            id: 'unfollow',
+            icon: 'visibility_off'
+        });
+    }
+
     if (RATABLE_TYPES.includes(item.Type)) {
         commands.push({
             name: 'Rate & Review',
@@ -852,6 +860,15 @@ function executeCommand(item, id, options) {
                 break;
             case 'syncprogresstouser':
                 syncProgressToUser(apiClient, item, options.user).then(getResolveFunction(resolve, id, true), getResolveFunction(resolve, id));
+                break;
+            case 'unfollow':
+                apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl(`Items/${itemId}/Unfollow`)
+                }).then(getResolveFunction(resolve, id, true), error => {
+                    toast('Could not unfollow this item');
+                    reject(error);
+                });
                 break;
             case 'ratereview':
                 rateAndReview(apiClient, item).then(getResolveFunction(resolve, id, true), getResolveFunction(resolve, id));

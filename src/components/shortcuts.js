@@ -7,6 +7,7 @@ import { EventType } from 'constants/eventType';
 import { ItemAction } from 'constants/itemAction';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 import Events from 'utils/events';
+import { queryClient } from 'utils/query/queryClient';
 
 import { playbackManager } from './playback/playbackmanager';
 import inputManager from '../scripts/inputManager';
@@ -169,6 +170,7 @@ function showContextMenu(card, options = {}) {
                     playlistId,
                     canEditPlaylist: !!playlistPerms.CanEdit,
                     collectionId,
+                    unfollow: !!card.closest('[data-recommendation-section]'),
                     user,
                     ...options
                 });
@@ -176,6 +178,11 @@ function showContextMenu(card, options = {}) {
             .then(result => {
                 if (result.command === 'playallfromhere' || result.command === 'queueallfromhere') {
                     executeAction(card, options.positionTo, result.command);
+                } else if (result.command === 'unfollow') {
+                    queryClient.removeQueries({ queryKey: [ 'User', apiClient.getCurrentUserId() ] });
+                    document.querySelectorAll('[data-recommendation-section]').forEach(container => {
+                        container.notifyRefreshNeeded(true);
+                    });
                 } else if (result.updated || result.deleted) {
                     notifyRefreshNeeded(card, options.itemsContainer);
                 }
